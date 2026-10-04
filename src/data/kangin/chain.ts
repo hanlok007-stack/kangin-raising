@@ -580,7 +580,7 @@ export const fails: GameEvent[] = [
     auto: 1,
     when: { max: { stamina: 5 }, not: ['collapsed'] },
     title: '쓰러지다',
-    text: '훈련 중에 세상이 기울었다. 눈을 뜨니 병원 천장이다. 의사가 말한다. "탈진입니다. 이 나이에 이러면 안 됩니다."',
+    text: '훈련 중에 세상이 기울었다. 구급차 사이렌 소리가 가까워지다 멀어졌다. 눈을 뜨니 병원 천장이다. 의사가 말한다. "탈진입니다. 이번은 운이 좋았어요. 두 번째는 장담 못 합니다."',
     choices: [{ label: '수액을 맞으며 눕는다', ok: { text: '이틀을 내리 잤다. 엄마가 침대 옆에서 졸고 있었다.', fx: { stamina: 55, stress: -10, family: 3 }, injure: 1, flag: ['collapsed'] } }],
   },
   {

@@ -203,6 +203,18 @@ export const art: Record<string, Art> = {
   k_ag: ['stadium', '🥇🪖', '금메달, 병역특례'],
   k_cl: ['stadium', '🏆👂', '빅이어'],
 
+  // ── 한눈팔면 끝나는 위기
+  v_crush: ['stadium', '💓👀', '눈이 마주쳤다'],
+  v_gf_cheer: ['stadium', '📣💕', '너 요즘 왜 잘하냐'],
+  v_gf_drift: ['city', '🎢📱', '오늘 훈련 빠지면 안 돼?'],
+  f_gf_quit: ['cafe', '💔⚽', '축구 얘기를 안 해'],
+  f_grade: ['school', '📉🚫', '출전 정지 위기'],
+  f_phone: ['night', '📱🌅', '창밖이 밝다'],
+  f_fracture: ['hospital', '🦴⚡', '금이 갔다'],
+  f_dadban: ['home', '👨💢', '축구 그만둬라'],
+  f_weight: ['hospital', '⚖️🍜', '야식 먹니?'],
+  f_ambush: ['city', '🪟💥', '유리창 값'],
+
   // ── 경기 장면
   sit_swarm: ['pitch', '🐝⚽', '벌떼 축구'],
   sit_open: ['pitch', '👀⚽', '틈이 보인다'],

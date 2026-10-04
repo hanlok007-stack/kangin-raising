@@ -15,29 +15,29 @@ v0.4 반기/분기 가변 턴·은퇴·의욕/변덕·해외 유스·손흥민/�
 
 위에서부터 순서대로. 항목을 끝낼 때마다 검증 → 이 파일 갱신 → `git commit` (푸시는 하지 않는다).
 
-- [ ] 1. **패러디 표기** (`src/data/parody.ts`, `src/data/index.ts`에서 모든 팩에 적용)
+- [x] 1. **패러디 표기** (`src/data/parody.ts`, `src/data/index.ts`에서 모든 팩에 적용)
   - 실존 인물·구단·학교·방송 이름을 살짝 비튼 표기로 바꾼다. 데이터 파일은 원래 표기로 두고, 팩을 내보낼 때 치환표로 한꺼번에 바꾼다.
   - "실제 역사 / 실제 커리어 / 실제와 같은 선택 / REAL ROUTE" → "원작 / 원작 연표 / 원작과 같은 선택 / ORIGINAL ROUTE".
   - 화면 코드(`src/ui/*.tsx`)에 박힌 이름·"실제" 문구도 `pack.hero`와 "원작"으로. `index.html` 제목과 `public/manifest.webmanifest` 이름도.
   - 고지문: "이 게임의 인물·구단·대회는 모두 패러디이며 실존 인물·단체와 무관합니다."
-- [ ] 2. **초기화면에서 편집자 제거 + 관리자 설정** (`src/platform/admin.ts`, `src/ui/admin.tsx`)
+- [x] 2. **초기화면에서 편집자 제거 + 관리자 설정** (`src/platform/admin.ts`, `src/ui/admin.tsx`)
   - 타이틀의 "편집자 화면" 버튼을 없앤다. 로고를 7번 누르면 PIN 입력 → SHA-256 해시가 맞으면 관리자 화면.
   - 관리자 화면: 편집자 열기, 광고 제거 권한 켜고 끄기(테스트), 챕터 전부 열기, 웹에서도 전면 광고 자리 보기, 저장 데이터 초기화.
   - PIN 바꾸기: `node scripts/set-pin.cjs <새 PIN>` 이 `ADMIN_HASH`를 다시 쓴다.
-- [ ] 3. **경기 선택지 슬롯** (`engine.ts` startMatch/movesFor, `types.ts`)
+- [x] 3. **경기 선택지 슬롯** (`engine.ts` startMatch/movesFor, `types.ts`)
   - 배운 기술이 많아도 한 장면에 나오는 선택지는 `s.slots`개(기본 4, 최대 6)만 무작위로. 기본기 하나는 반드시 포함.
   - 제시 목록은 경기 시작 때 정해 `match.offers`에 저장한다(다시 그려도 바뀌지 않게).
   - 슬롯 +1: 이벤트 보상(`Outcome.slot`) 또는 광고 보기(기록 탭의 버튼, `addSlot`).
-- [ ] 4. **챕터 진행** (`src/data/index.ts`의 campaign, `store.ts`의 `meta.chapter`)
+- [x] 4. **챕터 진행** (`src/data/index.ts`의 campaign, `store.ts`의 `meta.chapter`)
   - 1장 슛돌이 시절(이강인, 2011년 스페인행 결정까지) → 2장 유럽 사가(이강인, 2023년까지) → 3장 손흥민 → 4장 박지성.
   - 1장을 넘기면 "CHAPTER CLEAR" 화면 + 광고 제거 패키지 안내, 같은 판을 그대로 이어서 2장.
   - 손흥민은 2장을 마쳐야(2024년 도달 또는 은퇴 엔딩), 박지성은 3장을 마쳐야 열린다. `meta.unlocked`는 `meta.chapter`로 대체.
-- [ ] 5. **광고 정책과 결제 준비** (`src/platform/ads.ts`, `src/platform/billing.ts`)
+- [x] 5. **광고 정책과 결제 준비** (`src/platform/ads.ts`, `src/platform/billing.ts`)
   - 되돌리기는 횟수 제한 없이, 매번 광고 한 번. 1장에서는 첫 번째 되돌리기가 무료.
   - 전면 광고 자리: 1장 없음, 2장 14턴마다, 3장 10턴마다, 4장 8턴마다. 웹에서는 띄우지 않고(관리자 설정으로 미리보기), 앱에서만.
   - 상품 `no_ads` "광고 완전 무료 패키지" 9,900원: 가지고 있으면 모든 광고를 건너뛰고 보상만 받는다.
   - 웹에서는 구매 불가 안내만. 앱에서는 Google Play 결제 플러그인을 붙일 자리(`purchase()`)만 만들어 둔다. **실제 결제 코드는 Play Console 상품 등록 후에.**
-- [ ] 6. **광고를 부르는 위기 이벤트** (`src/data/kangin/more.ts`에 추가, 삽화는 `art.ts`)
+- [x] 6. **광고를 부르는 위기 이벤트** (`src/data/kangin/crisis.ts`, 삽화는 `art.ts`)
   - 탈진 1회차는 구급차를 타고 가서 봐준다(지금의 f_collapse1 문구 보강), 2회차는 엔딩 → 되돌리기.
   - 연애: 첫사랑 고백 → 응원 덕에 오히려 잘 풀리는 길 / 한눈팔다 축구를 그만두는 길(엔딩 `love`). 다른 선수 팩에는 연애 이벤트를 넣지 않는다.
   - 최저학력 미달, 새벽 휴대폰, 피로골절, 아빠의 축구 금지령, 체지방 측정 등 8개 이상.

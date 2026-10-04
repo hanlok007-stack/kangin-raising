@@ -4,6 +4,7 @@ import { actions } from './actions';
 import { art } from './art';
 import custom from './custom.json';
 import { agency, chain, fails } from './chain';
+import { crisis } from './crisis';
 import { endings } from './endings';
 import { moves, situations } from './match';
 import { abroad, late, whims } from './more';
@@ -88,7 +89,7 @@ const base: Pack = {
   situations,
   cats,
   // 순서가 우선순위다: 위기(triggered, fails) → 스토리 → 행동 반복 → 나머지
-  events: [...triggered, ...fails, ...story, ...pro, ...late, ...agency, ...whims, ...abroad, ...chain, ...random],
+  events: [...triggered, ...fails, ...crisis, ...story, ...pro, ...late, ...agency, ...whims, ...abroad, ...chain, ...random],
   art,
   endings,
   gates,
