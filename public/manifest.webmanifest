@@ -1,0 +1,17 @@
+{
+  "name": "이강인 키우기",
+  "short_name": "강인 키우기",
+  "description": "슛돌이 꼬마에서 은퇴까지. 팬메이드 패러디 축구선수 육성 게임.",
+  "lang": "ko",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#2e9e4f",
+  "theme_color": "#2e9e4f",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

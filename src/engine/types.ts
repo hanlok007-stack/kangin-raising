@@ -163,11 +163,12 @@ export interface Perk {
 
 // 특정 턴에 도달하면 조건 순서대로 판정해 스테이지를 옮기거나 엔딩을 낸다 (프로 진입 등)
 export interface Gate {
-  turn: number;
+  at: [number, number]; // [연도, 분기]
   rules: { when?: Cond; stage?: string; end?: string; set?: Fx; flag?: string[]; news?: string }[];
 }
 
 export interface Milestone {
+  id: string; // 레전드 도감 카드 id (삽화는 Pack.art[id])
   year: number;
   text: string;
   when: Cond;
@@ -189,9 +190,10 @@ export interface Pack {
   intro: string[];
   startYear: number;
   startAge: number;
-  turnsPerYear: number;
-  totalTurns: number;
-  turnNames: string[];
+  given: string; // 이름만 (부를 때)
+  foot: string; // 주발 — 다른 선수 팩을 만들 때 문구를 바꾸는 데 쓴다
+  calendar: [number, number][]; // [이 나이부터, 1년에 몇 턴] — 시기마다 턴 길이가 다르다
+  endAge: number; // 이 나이까지 진행한다 (은퇴)
   slots: number;
   eventRate: number;
   realBonus: number; // 실제 커리어와 같은 선택의 판정 보정 (세계선 수렴)
@@ -218,7 +220,7 @@ export interface Pack {
   art: Record<string, Art>;
   endings: EndingDef[];
   gates: Gate[];
-  drift: { when?: Cond; fx: Fx }[];
+  drift: { when?: Cond; fx: Fx; perTurn?: boolean }[]; // 기본은 분기당 변화량, perTurn이면 턴당
   npcs: Npc[];
   perks: Perk[];
   world: World;
@@ -336,6 +338,8 @@ export interface GameState {
   cool: Fx; // 에이전시 행동 id → 다시 쓸 수 있는 턴
   agencyTurn: number; // 마지막으로 에이전시 행동을 한 턴
   seen: string[];
+  evCount: number; // 이번 턴에 본 이벤트 수
+  revived: boolean; // 되돌리기를 이미 썼는가
   queue: string[];
   injured: number;
   rec: { apps: number; goals: number; assists: number; rating: number; mom: number };

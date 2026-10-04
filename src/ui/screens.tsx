@@ -14,13 +14,15 @@ import {
   movesFor,
   ovr,
   playMove,
-  quarterOf,
+  partName,
   runPlan,
+  slotAt,
   standing,
   startAgency,
   teamOf,
   test,
   titleOf,
+  totalTurns,
   worldline,
   yearOf,
 } from '../engine/engine';
@@ -30,18 +32,20 @@ import { ArtCard, Avatar, Bar, Deltas, moodOf } from './widgets';
 
 type Update = (s: GameState) => void;
 
-const dateOf = (p: Pack, turn: number) =>
-  `만 ${p.startAge + Math.floor(turn / p.turnsPerYear)}세 ${p.turnNames[turn % p.turnsPerYear]} (${p.startYear + Math.floor(turn / p.turnsPerYear)})`;
+const dateOf = (p: Pack, turn: number) => {
+  const x = slotAt(p, turn);
+  return `만 ${x.age}세 ${partName(x)} (${x.year})`;
+};
 const posName = (p: Pack, s: GameState) => (s.pos ? p.positions[s.pos].name : '포지션 미정');
-const endAge = (p: Pack) => p.startAge + Math.floor((p.totalTurns - 1) / p.turnsPerYear);
+const endAge = (p: Pack) => p.endAge;
 const rateTone = (r: number) => (r >= 8 ? 'top' : r >= 7 ? 'hi' : r >= 6 ? 'mid' : 'lo');
 
-export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: () => void; onContinue: () => void; onCodex: () => void; onEditor: () => void }) {
+export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: () => void; onContinue: () => void; onCodex: () => void; onEditor: () => void; onLegend: () => void; onPick: () => void }) {
   const { pack, meta, hasSave } = props;
   return (
     <main className="title">
       <div className="card logo">
-        <Avatar age={6} kit={pack.stages[pack.initStage].kit} mood="happy" />
+        <Avatar age={pack.startAge} kit={pack.stages[pack.initStage].kit} mood="happy" />
         <h1>{pack.title}</h1>
         <p className="tag">{pack.tagline}</p>
       </div>
@@ -59,6 +63,13 @@ export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: 
           <small>
             엔딩 {meta.endings.length}/{pack.endings.length} · 이벤트 {meta.events.length}/{pack.events.length}
           </small>
+        </button>
+        <button className="btn ghost" onClick={props.onLegend}>
+          🏅 레전드 도감
+          <small>굵직한 순간 {Object.values(meta.legend).reduce((a, x) => a + x.length, 0)}장 수집</small>
+        </button>
+        <button className="btn ghost slim" onClick={props.onPick}>
+          {meta.unlocked ? '👥 선수 바꾸기' : '🔒 다른 선수'} <small>{meta.unlocked ? '손흥민 · 박지성' : '이강인을 프로에 데뷔시키면 열린다'}</small>
         </button>
         <button className="btn ghost slim" onClick={props.onEditor}>
           🛠 편집자 화면 <small>이벤트·카테고리 수정</small>
@@ -141,7 +152,8 @@ function Hud({ pack, s }: { pack: Pack; s: GameState }) {
           <div className="team">{posName(pack, s)}</div>
           <div className="badges">
             <span className="badge ovr">OVR {Math.round(ovr(pack, s))}</span>
-            <span className="badge">세계선 이탈 {worldline(s)}%</span>
+            <span className="badge">세계선 이탈 {worldline(pack, s)}%</span>
+            {s.v.joy < 35 && <span className="badge bad">😡 언해피</span>}
             {age >= 17 && <span className={'exempt' in s.flags ? 'badge ok' : 'badge'}>{'exempt' in s.flags ? '병역특례 ✔' : '병역 미해결'}</span>}
           </div>
         </div>
@@ -154,6 +166,10 @@ function Hud({ pack, s }: { pack: Pack; s: GameState }) {
         <label>
           스트레스 <b>{Math.round(s.v.stress)}</b>
           <Bar value={s.v.stress} tone={s.v.stress > 70 ? 'danger' : 'stress'} />
+        </label>
+        <label>
+          의욕 <b>{Math.round(s.v.joy)}</b>
+          <Bar value={s.v.joy} tone={s.v.joy < 35 ? 'danger' : 'joy'} />
         </label>
       </div>
       <div className="stats">
@@ -218,12 +234,13 @@ function Plan({ pack, s, update }: { pack: Pack; s: GameState; update: Update })
           {news.comment && <span>💬 {news.comment}</span>}
         </p>
       )}
-      {s.injured > 0 && <p className="warn">🩹 부상 중 — 앞으로 {s.injured}분기 동안 격한 훈련을 할 수 없다.</p>}
+      {s.injured > 0 && <p className="warn">🩹 부상 중 — 당분간 격한 훈련을 할 수 없다.</p>}
       {s.v.stamina < 30 && <p className="warn">⚠ 체력이 바닥이다. 이대로 훈련하면 효과도 없고 쓰러진다.</p>}
       {s.v.stress > 75 && <p className="warn">⚠ 스트레스가 위험 수위다.</p>}
+      {s.v.joy < 40 && <p className="warn">😡 축구가 재미없어 보인다. 놀게 해 주지 않으면 딴마음을 먹는다.</p>}
       {s.v.coach < 30 && <p className="warn">⚠ 감독의 신뢰가 낮아 선발에서 밀린다. 더 떨어지면 명단에서 빠진다.</p>}
       <h3>
-        이번 분기 일정 <span>{pack.slots}개를 고르세요 · 🎓는 새 기술까지 남은 횟수</span>
+        이번 일정 <span>{pack.slots}개를 고르세요 · 🎓는 새 기술까지 남은 횟수</span>
       </h3>
       <h4>훈련</h4>
       {group('train')}
@@ -428,7 +445,6 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
               <button key={i} className="choice" onClick={() => update(choose(pack, s, i))}>
                 <b>
                   {c.label}
-                  {c.ok.real === true && <small className="realtag">★ 실제 이강인의 선택</small>}
                 </b>
                 {p != null && <span className={p >= 0.6 ? 'pct hi' : p >= 0.35 ? 'pct mid' : 'pct lo'}>성공률 {Math.round(p * 100)}%</span>}
               </button>
@@ -447,7 +463,7 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
             </p>
           )}
           <button className="btn hot" onClick={() => update(advance(pack, s))}>
-            {s.pendingEnd ? '그리고… ▶' : s.cur.back ? '계속 ▶' : '다음 분기로 ▶'}
+            {s.pendingEnd ? '그리고… ▶' : s.cur.back ? '계속 ▶' : '다음 ▶'}
           </button>
         </div>
       )}
@@ -461,11 +477,11 @@ function Agency({ pack, s, update }: { pack: Pack; s: GameState; update: Update 
   return (
     <div className="stack">
       <h3>
-        에이전시 <span>일정 칸을 쓰지 않는다 · 한 분기에 하나 · 크게 얻거나 크게 잃는다</span>
+        에이전시 <span>일정 칸을 쓰지 않는다 · 한 턴에 하나 · 크게 얻거나 크게 잃는다</span>
       </h3>
       {!list.length && <p className="fine">아직은 운동장이 전부인 나이다. 만 11세부터 문이 열린다.</p>}
       {list.length > 0 && !idle && <p className="note">일정을 짜는 단계에서만 움직일 수 있다.</p>}
-      {list.some((a) => a.used) && idle && <p className="note">이번 분기에는 이미 한 번 움직였다.</p>}
+      {list.some((a) => a.used) && idle && <p className="note">이번 턴에는 이미 한 번 움직였다.</p>}
       <div className="list">
         {list.map(({ action: a, wait, used }) => (
           <button key={a.id} className="choice agency" disabled={!idle || used || wait > 0} onClick={() => update(startAgency(pack, s, a.id))}>
@@ -473,7 +489,7 @@ function Agency({ pack, s, update }: { pack: Pack; s: GameState; update: Update 
               {a.icon} {a.name}
               <small>{a.desc}</small>
             </b>
-            {wait > 0 && <span>{wait}분기 뒤 가능</span>}
+            {wait > 0 && <span>{wait}턴 뒤 가능</span>}
           </button>
         ))}
       </div>
@@ -678,7 +694,7 @@ function Record({ pack, s }: { pack: Pack; s: GameState }) {
       </h3>
       <RealRoute pack={pack} s={s} />
       <h3>
-        세계선 <span>이탈률 {worldline(s)}%</span>
+        세계선 <span>이탈률 {worldline(pack, s)}%</span>
       </h3>
       <Timeline pack={pack} s={s} />
     </div>
@@ -703,7 +719,9 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
   useEffect(() => {
     setTab('main');
     const el = panel.current;
-    if (el && el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
+    if (!el) return;
+    el.scrollTop = 0; // 가로 화면에서는 패널이 따로 스크롤된다
+    if (el.getBoundingClientRect().top < 0) el.scrollIntoView({ block: 'start' });
   }, [step]);
   const age = ageOf(pack, s);
   return (
@@ -711,15 +729,15 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
       <header className="card top">
         <div className="when">
           <b>
-            만 {age}세 · {quarterOf(pack, s)}분기
+            만 {age}세 · {partName(slotAt(pack, s.turn))}
           </b>
           <small>{yearOf(pack, s)}년</small>
         </div>
         <div className="progress">
-          <Bar value={(100 * s.turn) / pack.totalTurns} tone="time" />
+          <Bar value={(100 * s.turn) / totalTurns(pack)} tone="time" />
           <small>
             <span>{pack.startAge}세</span>
-            <span>성장 {Math.round((100 * s.turn) / pack.totalTurns)}%</span>
+            <span>커리어 {Math.round((100 * s.turn) / totalTurns(pack))}%</span>
             <span>{endAge(pack)}세</span>
           </small>
         </div>
@@ -750,14 +768,14 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
   );
 }
 
-export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: () => void; onCodex: () => void }) {
+export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: () => void; onCodex: () => void; onRevive?: () => void }) {
   const { pack, s, meta } = props;
   const e = pack.endings.find((x) => x.id === s.ending)!;
   const w = standing(pack, s);
   const cap = Math.min(99, s.pa / 2 + 2);
   // 마지막 턴을 넘긴 뒤에도 나이는 마지막 분기 기준으로 보여준다
-  const lastTurn = Math.min(s.turn, pack.totalTurns - 1);
-  const age = pack.startAge + Math.floor(lastTurn / pack.turnsPerYear);
+  const lastTurn = Math.min(s.turn, totalTurns(pack) - 1);
+  const age = slotAt(pack, lastTurn).age;
   const nextPerk = pack.perks.find((k) => k.unlock > meta.endings.length);
   const hit = milestones(pack, s).filter((m) => m.done).length;
   const avg = avgRating(s);
@@ -814,10 +832,19 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
       </div>
       <div className="card">
         <h3>
-          🦋 나비효과 <span>세계선 이탈률 {worldline(s)}%</span>
+          🦋 나비효과 <span>세계선 이탈률 {worldline(pack, s)}%</span>
         </h3>
         <Timeline pack={pack} s={s} />
       </div>
+      {props.onRevive && (
+        <div className="card revive">
+          <h3>여기서 끝내기엔 아깝다</h3>
+          <p className="sub">이번 턴이 시작되던 순간으로 돌아가 다시 고를 수 있습니다. 한 판에 한 번만.</p>
+          <button className="btn" onClick={props.onRevive}>
+            📺 광고 보고 되돌리기
+          </button>
+        </div>
+      )}
       <div className="card">
         <p className="fine">
           엔딩 수집 {meta.endings.length} / {pack.endings.length} · 이벤트 {meta.events.length} / {pack.events.length}

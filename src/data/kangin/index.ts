@@ -6,6 +6,7 @@ import custom from './custom.json';
 import { agency, chain, fails } from './chain';
 import { endings } from './endings';
 import { moves, situations } from './match';
+import { abroad, late, whims } from './more';
 import { pro } from './pro';
 import { random, triggered } from './random';
 import { story } from './story';
@@ -15,7 +16,9 @@ const base: Pack = {
   id: 'kangin',
   title: '이강인 키우기',
   hero: '이강인',
-  tagline: '슛돌이 꼬마의 17년, 당신의 선택으로',
+  given: '강인',
+  foot: '왼발',
+  tagline: '슛돌이 꼬마에서 은퇴까지, 당신의 선택으로',
   disclaimer:
     '이 게임은 팬이 만든 패러디 픽션입니다. 주인공 외 등장인물과 사건은 모두 지어낸 것이며, 실제 인물·구단·단체와 관계가 없습니다.',
   intro: [
@@ -25,9 +28,9 @@ const base: Pack = {
   ],
   startYear: 2007,
   startAge: 6,
-  turnsPerYear: 4,
-  totalTurns: 68, // 2007년 1분기(만 6세) ~ 2023년 4분기(만 22세)
-  turnNames: ['1분기', '2분기', '3분기', '4분기'],
+  // 유소년은 반기씩 휙휙, 만 18세부터 전성기는 분기 단위, 서른부터는 다시 반기. 2036년(만 35세) 은퇴
+  calendar: [[6, 2], [18, 4], [30, 2]],
+  endAge: 35,
   slots: 3,
   eventRate: 0.8,
   realBonus: 0.12,
@@ -54,14 +57,15 @@ const base: Pack = {
     fame: '인지도',
     lang: '외국어',
     nat: '대표팀',
+    joy: '의욕',
   },
-  hidden: ['homesick', 'injury', 'rival', 'love'],
+  hidden: ['homesick', 'injury', 'rival', 'love', 'peak'],
   negative: ['stress', 'homesick', 'injury'],
   init: {
     dri: 14, pas: 12, sho: 11, phy: 5, iq: 9, men: 12,
     stamina: 80, stress: 10,
     coach: 40, family: 70, mates: 40, fame: 5, nat: 0,
-    homesick: 0, injury: 0, lang: 0, rival: 0, love: 0,
+    homesick: 0, injury: 0, lang: 0, rival: 0, love: 0, joy: 70, peak: 0,
   },
   initStage: 'shoot',
   pa: [150, 200],
@@ -83,15 +87,21 @@ const base: Pack = {
   situations,
   cats,
   // 순서가 우선순위다: 위기(triggered, fails) → 스토리 → 행동 반복 → 나머지
-  events: [...triggered, ...fails, ...story, ...pro, ...agency, ...chain, ...random],
+  events: [...triggered, ...fails, ...story, ...pro, ...late, ...agency, ...whims, ...abroad, ...chain, ...random],
   art,
   endings,
   gates,
   drift: [
-    { fx: { stamina: 20, stress: -3, fame: -0.8 } },
-    { when: { stage: ['es', 'bra', 'val', 'mal', 'psg', 'epl', 'es3'] }, fx: { lang: 3 } },
-    { when: { stage: ['es', 'bra'], max: { lang: 59.99 } }, fx: { homesick: 5 } },
-    { when: { stage: ['es', 'bra'], min: { lang: 60 } }, fx: { homesick: 2 } },
+    { fx: { stamina: 20, stress: -3 }, perTurn: true },
+    { fx: { fame: -0.8 } },
+    { when: { max: { joy: 49.99 } }, fx: { joy: 1 }, perTurn: true },
+    { when: { min: { stress: 70 } }, fx: { joy: -2 }, perTurn: true },
+    // 노쇠화: 서른부터 몸이 먼저 내려간다
+    { when: { age: [30, 99] }, fx: { phy: -0.5, dri: -0.25 } },
+    { when: { age: [33, 99] }, fx: { phy: -0.4, sho: -0.2, dri: -0.2, pas: -0.1 } },
+    { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat', 'val', 'mal', 'psg', 'epl', 'es3'] }, fx: { lang: 3 } },
+    { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], max: { lang: 59.99 } }, fx: { homesick: 5 } },
+    { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], min: { lang: 60 } }, fx: { homesick: 2 } },
     { when: { has: ['chronic'] }, fx: { injury: 2 } },
     { when: { has: ['partner'] }, fx: { stress: -3 } },
     { when: { has: ['dating'] }, fx: { love: 4 } },
@@ -134,9 +144,9 @@ const base: Pack = {
     bad: ['{hero} 침묵… {team} 고전', '[칼럼] {hero}, 성장통인가'],
   },
   text: {
-    injured: '부상 중이라 이번 분기 경기는 관중석에서 지켜봤다.',
+    injured: '부상 중이라 이번 경기는 관중석에서 지켜봤다.',
     benched: '선발 명단에 이름이 없다. 벤치에서 시작한다.',
-    dropped: '감독의 눈 밖에 났다. 이번 분기는 명단에도 들지 못했다.',
+    dropped: '감독의 눈 밖에 났다. 이번에는 명단에도 들지 못했다.',
     goal: '골망이 출렁였다. 골!',
     saved: '골키퍼가 손끝으로 쳐냈다. 아깝다.',
     assist: '동료가 마무리했다. 도움!',
@@ -158,13 +168,13 @@ const base: Pack = {
     [0, '슛돌이 출신 일반인'],
   ],
   scoring: {
-    ovr: 0.64,
-    vars: { fame: 0.06, coach: 0.03, mates: 0.02, nat: 0.04 },
+    ovr: 0,
+    vars: { peak: 0.64, fame: 0.06, coach: 0.03, mates: 0.02 },
     goal: 0.15,
     assist: 0.12,
     recCap: 8,
     tier: { S: 12, A: 9, B: 6, C: 3, D: 0 },
-    flags: { goldenball: 2, wc_hero: 2, exempt: 2, a_debut: 1, first_team: 1, captain: 1, mvp: 1 },
+    flags: { goldenball: 2, wc_hero: 2, exempt: 2, cl_win: 2, ac_win: 2, a_debut: 1, first_team: 1, captain: 1, mvp: 1 },
   },
 };
 

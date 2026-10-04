@@ -19,7 +19,11 @@ export function validate(p: Pack): string[] {
 
   const made = new Set<string>();
   const used = new Set<string>();
-  const scan = (c?: Cond) => [...(c?.has ?? []), ...(c?.any ?? []), ...(c?.not ?? [])].forEach((f) => used.add(f));
+  const anyOf: string[][] = [];
+  const scan = (c?: Cond) => {
+    c?.has?.forEach((f) => used.add(f));
+    if (c?.any) anyOf.push(c.any);
+  };
   const checkStage = (where: string, c?: Cond) => c?.stage?.forEach((st) => p.stages[st] || out.push(`${where}: 없는 스테이지 ${st}`));
 
   for (const e of p.events) {
@@ -41,7 +45,7 @@ export function validate(p: Pack): string[] {
         if (!o) continue;
         o.flag?.forEach((f) => made.add(f));
         if (o.next && !events.has(o.next)) out.push(`${e.id}: 없는 이벤트로 이어짐 ${o.next}`);
-        if (o.end && !endings.has(o.end)) out.push(`${e.id}: 없는 엔딩 ${o.end}`);
+        if (o.end && o.end !== '@final' && !endings.has(o.end)) out.push(`${e.id}: 없는 엔딩 ${o.end}`);
         if (o.stage && !p.stages[o.stage]) out.push(`${e.id}: 없는 스테이지 ${o.stage}`);
         if (o.pos && !p.positions[o.pos]) out.push(`${e.id}: 없는 포지션 ${o.pos}`);
         if (o.skill && !moves.has(o.skill)) out.push(`${e.id}: 없는 기술 ${o.skill}`);
@@ -68,5 +72,6 @@ export function validate(p: Pack): string[] {
   p.drift.forEach((d) => scan(d.when));
   p.realRoute.forEach((m) => scan(m.when));
   for (const f of used) if (!made.has(f)) out.push(`플래그 "${f}"를 조건에 쓰지만 만드는 곳이 없음`);
+  for (const g of anyOf) if (!g.some((f) => made.has(f))) out.push(`플래그 ${g.join('/')} 중 만들어지는 것이 없음`);
   return out;
 }

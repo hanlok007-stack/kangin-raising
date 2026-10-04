@@ -5,7 +5,7 @@ export type Mood = 'happy' | 'tired' | 'stressed' | 'hurt';
 export function moodOf(s: GameState): Mood {
   if (s.injured > 0) return 'hurt';
   if (s.v.stamina < 25) return 'tired';
-  if (s.v.stress > 70) return 'stressed';
+  if (s.v.stress > 70 || s.v.joy < 35) return 'stressed';
   return 'happy';
 }
 

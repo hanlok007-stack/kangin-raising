@@ -26,10 +26,38 @@ export function interp(curve: [number, number][], x: number): number {
   return curve[curve.length - 1][1];
 }
 
-export const yearOf = (p: Pack, s: GameState) => p.startYear + Math.floor(s.turn / p.turnsPerYear);
-export const quarterOf = (p: Pack, s: GameState) => (s.turn % p.turnsPerYear) + 1;
-export const ageOf = (p: Pack, s: GameState) => p.startAge + Math.floor(s.turn / p.turnsPerYear);
-const ageExact = (p: Pack, s: GameState) => p.startAge + s.turn / p.turnsPerYear;
+// 턴 길이는 시기마다 다르다 (유소년은 반기, 전성기는 분기). 팩의 calendar로 전체 일정을 펼친다.
+export interface Slot {
+  year: number;
+  age: number;
+  part: number;
+  per: number;
+}
+const lines = new WeakMap<Pack, Slot[]>();
+export function timeline(p: Pack): Slot[] {
+  let t = lines.get(p);
+  if (!t) {
+    t = [];
+    for (let age = p.startAge; age <= p.endAge; age++) {
+      let per = p.calendar[0][1];
+      for (const [from, n] of p.calendar) if (age >= from) per = n;
+      for (let part = 0; part < per; part++) t.push({ year: p.startYear + age - p.startAge, age, part, per });
+    }
+    lines.set(p, t);
+  }
+  return t;
+}
+export const totalTurns = (p: Pack) => timeline(p).length;
+export const slotAt = (p: Pack, turn: number) => timeline(p)[Math.max(0, Math.min(turn, timeline(p).length - 1))];
+const slot = (p: Pack, s: GameState) => slotAt(p, s.turn);
+export const yearOf = (p: Pack, s: GameState) => slot(p, s).year;
+export const ageOf = (p: Pack, s: GameState) => slot(p, s).age;
+// 이번 턴이 몇 분기 분량인가
+export const spanOf = (p: Pack, s: GameState) => 4 / slot(p, s).per;
+export const partName = (x: Slot) => (x.per === 4 ? x.part + 1 + '분기' : x.per === 2 ? (x.part ? '하반기' : '상반기') : '');
+const ageExact = (p: Pack, s: GameState) => slot(p, s).age + slot(p, s).part / slot(p, s).per;
+// [연도, 분기]가 속한 턴 번호. 일정 밖이면 -1
+export const turnAt = (p: Pack, at: [number, number]) => timeline(p).findIndex((x) => x.year === at[0] && x.part === Math.floor(((at[1] - 1) * x.per) / 4));
 
 export function teamOf(p: Pack, s: GameState): string {
   const age = ageOf(p, s);
@@ -130,6 +158,8 @@ export function newGame(p: Pack, seed: number, perkId: string | null = null): Ga
     cool: {},
     agencyTurn: -1,
     seen: [],
+    evCount: 0,
+    revived: false,
     queue: [],
     injured: 0,
     rec: { apps: 0, goals: 0, assists: 0, rating: 0, mom: 0 },
@@ -182,7 +212,8 @@ export function startAgency(p: Pack, s0: GameState, id: string): GameState {
 // 일정 실행: 행동을 순서대로 적용하고 훈련 결과 리포트를 남긴다
 export function runPlan(p: Pack, s0: GameState, ids: string[]): GameState {
   const s = clone(s0);
-  const g = p.gainScale * interp(p.growth, ageOf(p, s)) * (s.pa / 175) * p.stages[s.stage].facility;
+  const sp = spanOf(p, s);
+  const g = p.gainScale * sp * interp(p.growth, ageOf(p, s)) * (s.pa / 175) * p.stages[s.stage].facility;
   const cap = Math.min(99, s.pa / 2 + 2);
   const bonus = s.pos ? p.positions[s.pos].bonus : [];
   s.report = [];
@@ -193,6 +224,7 @@ export function runPlan(p: Pack, s0: GameState, ids: string[]): GameState {
     const d: Fx = {};
     let cond = 0.55 + (0.45 * s.v.stamina) / 100;
     if (s.v.stress > 70) cond *= 0.8;
+    if ((s.v.joy ?? 100) < 35) cond *= 0.8; // 언해피: 마음이 떠나면 훈련도 겉돈다
     const tired = !!a.physical && s.v.stamina < 25;
     const crit = !!a.gain && rand(s) < 0.1;
     if (a.gain) {
@@ -206,7 +238,7 @@ export function runPlan(p: Pack, s0: GameState, ids: string[]): GameState {
     if (a.fx) applyFx(p, s, a.fx, d);
     if (tired) applyFx(p, s, { injury: 8 }, d);
     // 같은 행동을 반복하면 새 기술이 열린다
-    const n = (s.counts[id] = (s.counts[id] ?? 0) + 1);
+    const n = (s.counts[id] = (s.counts[id] ?? 0) + sp);
     const learned = p.moves.filter((m) => m.learn?.action === id && n >= m.learn.n && !s.skills.includes(m.id)).map((m) => m.id);
     s.skills.push(...learned);
     s.report.push({ id, d, crit, tired, learned });
@@ -222,12 +254,13 @@ const sitById = (p: Pack, id: string) => p.situations.find((x) => x.id === id)!;
 
 function startMatch(p: Pack, s: GameState): GameState {
   s.match = null;
+  s.evCount = 0;
   if (s.injured > 0) {
     s.note = p.text.injured;
     return toEvent(p, s);
   }
   if (s.v.coach < 10) {
-    applyFx(p, s, { stress: 6 }, {});
+    applyFx(p, s, { stress: 6, joy: -5 }, {});
     s.note = p.text.dropped;
     return toEvent(p, s);
   }
@@ -375,6 +408,7 @@ function makeSheet(p: Pack, s: GameState) {
   if (rating < 5.5) fx.stress = 6;
   else if (rating >= 8) fx.stress = -5;
   if (ageOf(p, s) >= 14) fx.nat = rating >= 8 ? 2 : rating >= 7 ? 0.7 : 0;
+  fx.joy = (rating >= 7.5 ? 3 : rating < 5.5 ? -3 : 0) - (mt.sub ? 2 : 0);
   const d: Fx = {};
   applyFx(p, s, fx, d);
 
@@ -403,17 +437,16 @@ function makeSheet(p: Pack, s: GameState) {
 
 /* ───────── 이벤트 ───────── */
 
-const turnAt = (p: Pack, at: [number, number]) => (at[0] - p.startYear) * p.turnsPerYear + at[1] - 1;
-
-function pickEvent(p: Pack, s: GameState): GameEvent | null {
+function pickEvent(p: Pack, s: GameState, extra = false): GameEvent | null {
   const byId = (id: string) => p.events.find((e) => e.id === id);
   const rate = (e: GameEvent) => p.cats[e.cat]?.rate ?? 1;
-  const fresh = (e: GameEvent) => e.repeat || !s.seen.includes(e.id);
+  const fresh = (e: GameEvent) => (e.repeat ? e.id !== s.cur?.id : !s.seen.includes(e.id));
   // 1) 때가 된 스토리 이벤트 (다른 이벤트에 밀려도 1년 안에는 발생)
   const story = p.events.find((e) => {
     if (!e.at || s.seen.includes(e.id)) return false;
-    const late = s.turn - turnAt(p, e.at);
-    return late >= 0 && late < p.turnsPerYear && test(p, s, e.when);
+    const due = turnAt(p, e.at);
+    const late = s.turn - due;
+    return due >= 0 && late >= 0 && late < Math.max(2, slot(p, s).per) && test(p, s, e.when);
   });
   if (story) return story;
   // 2) 지난 선택이 예약한 연쇄 이벤트
@@ -424,7 +457,7 @@ function pickEvent(p: Pack, s: GameState): GameEvent | null {
   // 3) 상태·행동 반복이 부르는 이벤트 (번아웃, 부상, 반복 행동의 결과 등)
   for (const e of p.events) if (e.auto && fresh(e) && test(p, s, e.when) && rand(s) < e.auto * rate(e)) return e;
   // 4) 랜덤 풀
-  if (rand(s) > p.eventRate) return null;
+  if (rand(s) > (extra ? 0.6 : p.eventRate)) return null;
   const pool = p.events.filter((e) => e.weight && fresh(e) && test(p, s, e.when));
   let total = pool.reduce((a, e) => a + e.weight! * rate(e), 0);
   if (!total) return null;
@@ -444,6 +477,12 @@ function toEvent(p: Pack, s: GameState): GameState {
   return s;
 }
 
+// 커리어를 끝까지 마쳤을 때의 엔딩: final 엔딩을 위에서부터 판정
+function finalEnding(p: Pack, s: GameState): string {
+  const e = p.endings.find((x) => x.final && test(p, s, x.when));
+  return e ? e.id : p.endings[p.endings.length - 1].id;
+}
+
 function finish(p: Pack, s: GameState, id: string): GameState {
   s.ending = id;
   s.phase = 'ending';
@@ -454,14 +493,22 @@ function finish(p: Pack, s: GameState, id: string): GameState {
 }
 
 function endTurn(p: Pack, s: GameState): GameState {
-  for (const dr of p.drift) if (test(p, s, dr.when)) applyFx(p, s, dr.fx, {});
-  if (s.injured > 0) s.injured--;
+  const sp = spanOf(p, s);
+  for (const dr of p.drift) {
+    if (!test(p, s, dr.when)) continue;
+    const fx: Fx = {};
+    for (const k in dr.fx) fx[k] = dr.fx[k] * (dr.perTurn ? 1 : sp);
+    applyFx(p, s, fx, {});
+  }
+  s.v.peak = Math.max(s.v.peak ?? 0, ovr(p, s));
+  s.injured = Math.max(0, s.injured - sp);
+  s.evCount = 0;
   s.turn++;
   s.cur = null;
   s.match = null;
   s.report = [];
   for (const g of p.gates) {
-    if (g.turn !== s.turn) continue;
+    if (turnAt(p, g.at) !== s.turn) continue;
     const r = g.rules.find((x) => test(p, s, x.when));
     if (!r) continue;
     if (r.end) return finish(p, s, r.end);
@@ -471,10 +518,7 @@ function endTurn(p: Pack, s: GameState): GameState {
     applySet(s, r.set, {});
     if (r.news) pushNews(s, fill(p, s, r.news), 'good');
   }
-  if (s.turn >= p.totalTurns) {
-    const e = p.endings.find((x) => x.final && test(p, s, x.when));
-    return finish(p, s, e ? e.id : p.endings[p.endings.length - 1].id);
-  }
+  if (s.turn >= totalTurns(p)) return finish(p, s, finalEnding(p, s));
   s.phase = 'plan';
   return s;
 }
@@ -520,7 +564,7 @@ export function choose(p: Pack, s0: GameState, idx: number): GameState {
   if (o.next) s.queue.push(o.next);
   if (o.goal) s.rec.goals += o.goal;
   if (o.assist) s.rec.assists += o.assist;
-  if (o.end) s.pendingEnd = o.end;
+  if (o.end) s.pendingEnd = o.end === '@final' ? finalEnding(p, s) : o.end; // '@final': 은퇴 선언
   if (o.news) pushNews(s, o.news, ok ? 'good' : 'bad');
   if (!s.seen.includes(ev.id)) s.seen.push(ev.id);
   s.history.push({ turn: s.turn, title: ev.title, label: c.label, real: o.real });
@@ -540,7 +584,18 @@ export function advance(p: Pack, s0: GameState): GameState {
   if (s.phase === 'sheet') return toEvent(p, s);
   if (s.phase === 'scene' && s.cur?.result) {
     if (s.pendingEnd) return finish(p, s, s.pendingEnd);
-    if (!s.cur.back) return endTurn(p, s);
+    if (!s.cur.back) {
+      // 턴이 긴 시기(반기)에는 한 턴에 이벤트가 두 번까지 온다
+      s.evCount++;
+      if (s.evCount < (slot(p, s).per <= 2 ? 2 : 1)) {
+        const e = pickEvent(p, s, true);
+        if (e) {
+          s.cur = { id: e.id };
+          return s;
+        }
+      }
+      return endTurn(p, s);
+    }
     // 에이전시에서 연 이벤트: 이어지는 이벤트가 있으면 바로 열고, 없으면 일정 화면으로
     const next = s.queue.shift();
     s.cur = next ? { id: next, back: true } : null;
@@ -552,10 +607,26 @@ export function advance(p: Pack, s0: GameState): GameState {
 
 /* ───────── 요약·조망 ───────── */
 
-export function worldline(s: GameState): number {
+// 세계선 이탈률: 실제와 달랐던 핵심 선택 + 실제 연표에서 놓친 일
+export function worldline(p: Pack, s: GameState): number {
   const keyed = s.history.filter((h) => h.real !== undefined);
-  if (!keyed.length) return 0;
-  return Math.round((100 * keyed.filter((h) => !h.real).length) / keyed.length);
+  const ms = milestones(p, s).filter((m) => m.past);
+  const total = keyed.length + ms.length;
+  if (!total) return 0;
+  return Math.round((100 * (keyed.filter((h) => !h.real).length + ms.filter((m) => !m.done).length)) / total);
+}
+
+// 광고 보상 등으로 턴 시작 지점에서 다시 한 번. 난수를 틀어 같은 결과가 반복되지 않게 한다
+export function revive(s0: GameState): GameState {
+  const s = clone(s0);
+  s.rng = (s.rng ^ 0x9e3779b9) | 0;
+  s.revived = true;
+  s.v.stamina = Math.max(s.v.stamina, 60);
+  s.v.stress = Math.min(s.v.stress, 50);
+  s.v.coach = Math.max(s.v.coach, 30);
+  s.v.injury = Math.min(s.v.injury ?? 0, 30);
+  if (s.v.joy != null) s.v.joy = Math.max(s.v.joy, 55);
+  return s;
 }
 
 export const avgRating = (s: GameState) => (s.rec.apps ? s.rec.rating / s.rec.apps : 0);

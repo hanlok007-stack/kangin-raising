@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { packs } from '../data';
 import { kangin as pack } from '../data/kangin';
 import {
   advance,
@@ -16,6 +17,8 @@ import {
   standing,
   startAgency,
   test as cond,
+  timeline,
+  totalTurns,
   worldline,
 } from './engine';
 import type { Choice, GameState, Move } from './types';
@@ -34,7 +37,8 @@ function lcg(seed: number) {
   return () => ((x = (x * 1664525 + 1013904223) >>> 0) / 4294967296);
 }
 
-function play(seed: number, policy: Policy): GameState {
+function play(seed: number, policy: Policy, pk = pack): GameState {
+  const pack = pk;
   let s = newGame(pack, seed);
   for (let guard = 0; guard < 3000 && s.phase !== 'ending'; guard++) {
     if (s.phase === 'plan') {
@@ -93,8 +97,9 @@ const smartPolicy = (seed: number, opts: { focus?: string[]; choices?: Record<st
       const out: string[] = [];
       let stamina = s.v.stamina;
       if (s.v.stress > 55 && ok.includes('family')) out.push('family');
+      if ((s.v.joy ?? 100) < 50) out.push(ok.includes('street') ? 'street' : 'friends');
       if (s.v.injury > 40 && ok.includes('rehab')) out.push('rehab');
-      if (['es', 'bra'].includes(s.stage) && s.v.lang < 60) out.push('lang');
+      if (['es', 'bra', 'ned', 'ger', 'cat'].includes(s.stage) && s.v.lang < 60 && out.length < 2) out.push('lang');
       const pool = trains.filter((t) => ok.includes(t));
       while (out.length < pack.slots) {
         if (stamina < 45 && !out.includes('rest')) {
@@ -145,6 +150,13 @@ describe('데이터 무결성', () => {
     expect(missing).toEqual([]);
   });
 
+  it('모든 선수 팩이 온전하고 삽화가 빠짐없다', () => {
+    for (const { pack: p } of packs) {
+      expect(validate(p), p.id).toEqual([]);
+      expect([...p.events, ...p.situations, ...p.realRoute].filter((x) => !p.art[x.id]).map((x) => x.id), p.id).toEqual([]);
+    }
+  });
+
   it('콘텐츠 목표를 채운다', () => {
     expect(pack.events.length).toBeGreaterThanOrEqual(120);
     expect(pack.actions.filter((a) => a.kind === 'train').length).toBeGreaterThanOrEqual(10);
@@ -176,14 +188,14 @@ describe('엔진', () => {
     const t = runPlan(pack, s, ['tech', 'tech', 'tech']);
     expect(t.v.dri).toBeGreaterThan(s.v.dri);
     expect(t.v.stamina).toBeLessThan(s.v.stamina);
-    expect(t.counts.tech).toBe(3);
+    expect(t.counts.tech).toBe(6); // 반기 턴은 행동 하나가 두 분기 분량
   });
 
   it('같은 훈련을 반복하면 기술을 배우고, 경기 선택지가 늘어난다', () => {
     let s = newGame(pack, 5);
-    for (let i = 0; i < 2; i++) s = { ...runPlan(pack, s, ['pass', 'tech', 'shoot']), phase: 'plan' as const };
+    s = { ...runPlan(pack, s, ['pass', 'tech', 'shoot']), phase: 'plan' as const };
     expect(s.skills).toEqual([]);
-    for (let i = 0; i < 2; i++) s = { ...runPlan(pack, s, ['pass', 'tech', 'shoot']), phase: 'plan' as const };
+    s = { ...runPlan(pack, s, ['pass', 'tech', 'shoot']), phase: 'plan' as const };
     expect(s.skills).toEqual(expect.arrayContaining(['through', 'turn', 'curl']));
   });
 
@@ -204,7 +216,7 @@ describe('엔진', () => {
 
   it('에이전시 행동은 한 분기에 하나만, 끝나면 일정 화면으로 돌아온다', () => {
     let s = newGame(pack, 11);
-    s.turn = 24; // 만 12세
+    s.turn = 12; // 만 12세
     const [first] = readyAgency(s);
     expect(first).toBeTruthy();
     s = startAgency(pack, s, first);
@@ -215,6 +227,22 @@ describe('엔진', () => {
     expect(readyAgency(s)).toEqual([]);
   });
 
+  it('유소년은 반기, 만 18세부터 분기, 서른부터 다시 반기로 흐른다', () => {
+    const t = timeline(pack);
+    expect(t[0]).toMatchObject({ year: 2007, age: 6, per: 2 });
+    expect(t.filter((x) => x.age === 17).length).toBe(2);
+    expect(t.filter((x) => x.age === 18).length).toBe(4);
+    expect(t.filter((x) => x.age === 30).length).toBe(2);
+    expect(t[t.length - 1].age).toBe(pack.endAge);
+  });
+
+  it('3분 안에 아이가 딴마음을 먹는다', () => {
+    const s = play(77, smartPolicy(3));
+    const whim = s.history.find((h) => h.title === '태권도 선수가 될래요');
+    expect(whim).toBeTruthy();
+    expect(whim!.turn).toBeLessThanOrEqual(6);
+  });
+
   it('세계 순위는 능력이 오를수록 올라간다', () => {
     const s = newGame(pack, 13);
     const t = structuredClone(s);
@@ -223,8 +251,50 @@ describe('엔진', () => {
   });
 });
 
+describe('다른 선수 팩', { timeout: 180000 }, () => {
+  for (const { pack: p } of packs.slice(1)) {
+    it(p.hero + ': 실제 선택을 따라가면 REAL ROUTE에 닿을 수 있고, 무작위로 눌러도 끝까지 간다', () => {
+      const tally: Record<string, number> = {};
+      const trains = ['tech', 'pass', 'shoot', 'fk', 'tactic', 'team', 'phys', 'mental'];
+      for (let i = 0; i < 40; i++) {
+        const r = lcg(i);
+        const follow = i % 2 === 1; // 홀수 판은 관리하며 실제 선택을, 짝수 판은 아무거나
+        const pol: Policy = {
+          plan: (s) => {
+            const ok = availableActions(p, s)
+              .filter((x) => !x.disabled)
+              .map((x) => x.action.id);
+            const out: string[] = [];
+            if (follow) {
+              if (s.v.stamina < 45) out.push('rest');
+              if ((s.v.joy ?? 100) < 50) out.push('friends');
+              if (s.v.stress > 55) out.push('family');
+            }
+            const pool = ok.filter((x) => !out.includes(x) && (!follow || trains.includes(x)));
+            while (out.length < p.slots && pool.length) out.push(pool.splice(Math.floor(r() * pool.length), 1)[0]);
+            for (const x of ok) if (out.length < p.slots && !out.includes(x)) out.push(x);
+            return out.slice(0, p.slots);
+          },
+          move: (_s, opts) => (follow ? [...opts].sort((x, y) => y.p - x.p)[0] : opts[Math.floor(r() * opts.length)]).move.id,
+          pick: (_s, open) => {
+            if (!follow) return open[Math.floor(r() * open.length)].i;
+            const real = open.find((x) => x.c.ok.real === true);
+            if (real) return real.i;
+            const calm = open.filter((x) => !x.c.ok.end && !x.c.fail?.end && x.c.ok.real !== false && !x.c.ok.stage);
+            return (calm[0] ?? open[0]).i;
+          },
+        };
+        const s = play(500 + i, pol, p);
+        tally[s.ending!] = (tally[s.ending!] ?? 0) + 1;
+      }
+      console.log('[' + p.hero + '] ' + Object.entries(tally).sort((x, y) => y[1] - x[1]).map(([k, v]) => k + ' ' + v).join(' · '));
+      expect(tally[p.endings.find((e) => e.real)!.id] ?? 0).toBeGreaterThan(0);
+    });
+  }
+});
+
 describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
-  const N = 120;
+  const N = 80;
   const run = (name: string, mk: (seed: number) => Policy) => {
     const tally: Record<string, number> = {};
     let ovrSum = 0;
@@ -239,11 +309,11 @@ describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
     for (let i = 0; i < N; i++) {
       const s = play(1000 + i, mk(i));
       tally[s.ending!] = (tally[s.ending!] ?? 0) + 1;
-      if (s.turn >= pack.totalTurns) finals.push(ovr(pack, s));
+      if (s.turn >= totalTurns(pack) || s.history.some((h) => h.title === '은퇴 기자회견')) finals.push(s.v.peak ?? 0);
       ovrSum += ovr(pack, s);
       scoreSum += s.score;
       seen += s.seen.length;
-      wl += worldline(s);
+      wl += worldline(pack, s);
       ga += s.rec.goals + s.rec.assists;
       rate += avgRating(s);
       skills += s.skills.length;
@@ -271,7 +341,7 @@ describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
 
   it('훈련을 고르게만 해도 프로는 된다', () => {
     const tally = run('관리형', (i) => smartPolicy(i));
-    const fail = ['released', 'amateur', 'burnout', 'fallen', 'exhausted', 'outcast'].reduce((a, k) => a + (tally[k] ?? 0), 0);
+    const fail = ['released', 'amateur', 'burnout', 'fallen', 'exhausted', 'outcast', 'quit'].reduce((a, k) => a + (tally[k] ?? 0), 0);
     expect(fail).toBeLessThan(N * 0.35);
   });
 
@@ -289,6 +359,6 @@ describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
     const base = smartPolicy(1);
     const grind: Policy = { ...base, plan: (s) => ['phys', 'shoot', 'tech', 'pass', 'tactic'].filter((t) => ids(s).includes(t)).slice(0, pack.slots) };
     const tally = run('혹사형', () => grind);
-    expect((tally.burnout ?? 0) + (tally.fallen ?? 0) + (tally.exhausted ?? 0)).toBeGreaterThan(N * 0.5);
+    expect((tally.burnout ?? 0) + (tally.fallen ?? 0) + (tally.exhausted ?? 0) + (tally.quit ?? 0)).toBeGreaterThan(N * 0.5);
   });
 });

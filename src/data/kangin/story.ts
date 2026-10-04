@@ -156,6 +156,7 @@ export const story: GameEvent[] = [
       { label: '스페인에 간다', ok: { text: '숟가락을 내려놓고 고개를 끄덕였다. 그날 밤 지구본에서 스페인을 찾아봤다.', fx: { family: 5 }, flag: ['go_spain'], next: 's_tryout', real: true } },
       { label: '한국에 남는다', ok: { text: '"여기서도 잘할 수 있어요." 아빠는 더 묻지 않았다.', fx: { mates: 8 }, flag: ['stay_kr'], real: false } },
       { label: '"조금만 더 생각해 볼게요"', ok: { text: '밥이 잘 넘어가지 않았다.', fx: { stress: 4 }, next: 's_spain2' } },
+      { label: '"다른 나라는 없어요?"', ok: { text: '아빠가 책장에서 지구본을 꺼냈다.', next: 'x_abroad' } },
     ],
   },
   {
@@ -297,7 +298,7 @@ export const story: GameEvent[] = [
       {
         label: '"오늘은 내가 주인공이다"',
         check: { stats: { dri: 1, sho: 1 }, rel: 6, trait: 'left' },
-        ok: { text: '대회 MVP. 트로피가 팔뚝만 했다.', fx: { fame: 10, coach: 5, men: 1, nat: 6 }, goal: 2, flag: ['mvp'], news: '[유소년] 이강인, 국제대회 MVP… 현지 매체 "왼발의 마법사"' },
+        ok: { text: '대회 MVP. 트로피가 팔뚝만 했다.', fx: { fame: 10, coach: 5, men: 1, nat: 6 }, goal: 2, flag: ['mvp'], next: 'x_calls', news: '[유소년] 이강인, 국제대회 MVP… 현지 매체 "왼발의 마법사"' },
         fail: { text: '너무 힘이 들어갔다. 조별리그 탈락.', fx: { stress: 8, coach: -4 } },
       },
       {

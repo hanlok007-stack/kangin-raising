@@ -81,7 +81,7 @@ export const triggered: GameEvent[] = [
     cat: '위기',
     auto: 1,
     repeat: true,
-    when: { stage: ['es', 'bra'], min: { homesick: 90 } },
+    when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], min: { homesick: 90 } },
     title: '돌아가고 싶다',
     text: '훈련이 끝나고 방에 혼자 앉아 있다. 창밖은 온통 낯선 말이다. 돌아가고 싶다는 생각이 처음으로 진지해졌다.',
     choices: [

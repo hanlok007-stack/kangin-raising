@@ -32,18 +32,19 @@ export const world: World = {
 
 // 실제 커리어 연표. when이 참이면 "이 세계선에서도 일어났다"로 표시된다.
 export const realRoute: Milestone[] = [
-  { year: 2007, text: '「날아라 슛돌이」 출연', when: {} },
-  { year: 2009, text: '인천 유나이티드 U-12 입단', when: { has: ['m_kr'] } },
-  { year: 2011, text: '발렌시아 유소년 아카데미 입단', when: { has: ['go_spain'] } },
-  { year: 2017, text: '발렌시아 B팀(메스타야) 데뷔', when: { has: ['go_spain', 'promoted'], not: ['brazil', 'returned'] } },
-  { year: 2018, text: '만 17세, 발렌시아 1군 데뷔', when: { has: ['go_spain', 'first_team'], not: ['brazil', 'returned'] } },
-  { year: 2019, text: '발렌시아 1군 정식 등록', when: { has: ['m_val'] } },
-  { year: 2019, text: 'U-20 월드컵 준우승, 골든볼 수상', when: { has: ['goldenball'] } },
-  { year: 2019, text: 'A대표팀 데뷔', when: { has: ['a_debut'] } },
-  { year: 2021, text: 'RCD 마요르카 이적', when: { has: ['m_mal'] } },
-  { year: 2022, text: '카타르 월드컵 16강 (가나전 도움)', when: { has: ['wc_hero'] } },
-  { year: 2023, text: '파리 생제르맹 이적', when: { has: ['m_psg'] } },
-  { year: 2023, text: '항저우 아시안게임 금메달 → 병역특례', when: { has: ['ag_gold'] } },
+  { id: 'k_shoot', year: 2007, text: '「날아라 슛돌이」 출연', when: {} },
+  { id: 'k_incheon', year: 2009, text: '인천 유나이티드 U-12 입단', when: { has: ['m_kr'] } },
+  { id: 'k_valencia', year: 2011, text: '발렌시아 유소년 아카데미 입단', when: { has: ['go_spain'] } },
+  { id: 'k_bteam', year: 2017, text: '발렌시아 B팀(메스타야) 데뷔', when: { has: ['go_spain', 'promoted'], not: ['brazil', 'returned', 'abroad_alt'] } },
+  { id: 'k_debut', year: 2018, text: '만 17세, 발렌시아 1군 데뷔', when: { has: ['go_spain', 'first_team'], not: ['brazil', 'returned', 'abroad_alt'] } },
+  { id: 'k_first', year: 2019, text: '발렌시아 1군 정식 등록', when: { has: ['m_val'] } },
+  { id: 'k_golden', year: 2019, text: 'U-20 월드컵 준우승, 골든볼 수상', when: { has: ['goldenball'] } },
+  { id: 'k_adebut', year: 2019, text: 'A대표팀 데뷔', when: { has: ['a_debut'] } },
+  { id: 'k_mallorca', year: 2021, text: 'RCD 마요르카 이적', when: { has: ['m_mal'] } },
+  { id: 'k_wc22', year: 2022, text: '카타르 월드컵 16강 (가나전 도움)', when: { has: ['wc_hero'] } },
+  { id: 'k_psg', year: 2023, text: '파리 생제르맹 이적', when: { has: ['m_psg'] } },
+  { id: 'k_ag', year: 2023, text: '항저우 아시안게임 금메달 → 병역특례', when: { has: ['ag_gold'] } },
+  { id: 'k_cl', year: 2025, text: '챔피언스리그 우승', when: { has: ['cl_win'] } },
 ];
 
 export const stages: Record<string, StageDef> = {
@@ -90,22 +91,27 @@ export const stages: Record<string, StageDef> = {
   epl: { name: '프리미어리그', league: 'epl', teams: [[0, '런던 로버스']], kit: ['#7b1fa2', '#ffffff'], curve: [[17, 78], [22, 83]], facility: 1.22, opps: ['맨체스터 블루', '머지사이드 레즈', '북런던 거너스', '타인사이드 FC', '런던 블루스'] },
   kl: { name: 'K리그 1', league: 'kl1', teams: [[0, '인천 유나이티드']], kit: ['#1e4fd8', '#111111'], curve: [[17, 62], [22, 68]], facility: 1.02, opps: ['울산', '전북', '포항', '서울', '수원', '대구'] },
   es3: { name: '스페인 3부', league: 'es3', teams: [[0, 'CD 알코야노 (임대)']], kit: ['#2b6cff', '#ffffff'], curve: [[17, 60], [22, 65]], facility: 1.0, opps: ['카스테욘', '에르쿨레스', '아틀레티코 발레아레스', '이비사'] },
+  ned: { name: '네덜란드', league: 'ned', teams: [[0, 'AFC 암스테르담 유스'], [18, 'AFC 암스테르담']], kit: ['#ffffff', '#d81e2c'], curve: [[9, 33], [17, 62], [18, 70], [22, 73]], facility: 1.18, opps: ['로테르담 SC', '에인트호번 유나이티드', '위트레흐트 FC', '알크마르'] },
+  ger: { name: '독일', league: 'bundes', teams: [[0, 'BV 루르 유스'], [18, 'BV 루르']], kit: ['#ffe14d', '#111111'], curve: [[9, 33], [17, 63], [18, 74], [22, 77]], facility: 1.18, opps: ['바이에른 로트', '라인 SC', '베를린 유니온스', '작센 불스'] },
+  cat: { name: '스페인 · 카탈루냐', league: 'big', teams: [[0, 'FC 카탈루냐 유스'], [18, 'FC 카탈루냐']], kit: ['#1d3fae', '#a01230'], curve: [[9, 40], [17, 70], [18, 80], [22, 86]], facility: 1.28, opps: ['레알 마드리드', '아틀레티코', '세비야', '발렌시아', '빌바오'] },
+  sau: { name: '사우디 프로리그', league: 'sau', teams: [[0, '알 사막 FC']], kit: ['#0f766e', '#ffffff'], curve: [[17, 66], [36, 68]], facility: 0.95, opps: ['알 오아시스', '알 리야드', '알 제다', '알 담맘'] },
   univ: { name: '대학 U리그', league: 'univ', teams: [[0, '한강대학교']], kit: ['#0f766e', '#ffffff'], curve: [[17, 48], [22, 55]], facility: 0.9, opps: ['북악대', '안암대', '신촌대', '용인대'] },
 };
 
 // 만 17세 겨울(48턴)의 프로 진입 관문. 위에서부터 처음 맞는 규칙이 적용된다.
 export const gates: Gate[] = [
   {
-    turn: 48,
+    at: [2019, 1],
     rules: [
       { when: { has: ['bigclub_sign'], min: { ovr: 72 } }, stage: 'epl', set: { coach: 42 }, flag: ['pro', 'm_big'], news: '[오피셜] 런던 로버스, 17세 {hero} 전격 영입' },
       { when: { stage: ['es'], has: ['signed'], min: { ovr: 66, coach: 40 } }, stage: 'val', set: { coach: 42 }, flag: ['pro', 'm_val'], news: '[오피셜] 발렌시아, {hero} 1군 정식 등록' },
-      { when: { stage: ['bra'], has: ['signed'], min: { ovr: 60 } }, set: { coach: 50 }, flag: ['pro'], news: '[해외축구] {hero}, 브라질 1부 프로 계약' },
+      { when: { stage: ['cat'], has: ['signed'], min: { ovr: 68 } }, set: { coach: 42 }, flag: ['pro', 'm_big'], news: '[오피셜] FC 카탈루냐, {hero} 1군 승격' },
+      { when: { stage: ['bra', 'ned', 'ger'], has: ['signed'], min: { ovr: 60 } }, set: { coach: 50 }, flag: ['pro'], news: '[해외축구] {hero}, {team}와 프로 계약' },
       { when: { stage: KR, has: ['signed'], min: { ovr: 63 } }, stage: 'kl', set: { coach: 55 }, flag: ['pro'], news: '[K리그] {hero}, 고교생 신분으로 준프로 계약' },
       { when: { has: ['bookworm', 'college'], min: { iq: 70 } }, end: 'scholar' },
       { when: { any: ['tv_kid', 'tv2', 'cf'], min: { fame: 75 }, max: { ovr: 58 } }, end: 'tv_star' },
-      { when: { stage: ['es', 'bra'], not: ['college'], min: { ovr: 54 } }, stage: 'es3', set: { coach: 55 }, flag: ['pro'], news: '[해외축구] {hero}, 스페인 3부 임대' },
-      { when: { stage: ['es', 'bra'], not: ['college'] }, end: 'released' },
+      { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], not: ['college'], min: { ovr: 54 } }, stage: 'es3', set: { coach: 55 }, flag: ['pro'], news: '[해외축구] {hero}, 스페인 3부 임대' },
+      { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], not: ['college'] }, end: 'released' },
       { when: { min: { ovr: 46 } }, stage: 'univ', set: { coach: 55 }, flag: ['univ'] },
       { end: 'amateur' },
     ],
@@ -137,4 +143,5 @@ export const cats: Record<string, Category> = {
   생활: { icon: '🍜', color: '#a16207', rate: 1 },
   황당: { icon: '🤪', color: '#c026d3', rate: 1 },
   위기: { icon: '💀', color: '#111111', rate: 1 },
+  변덕: { icon: '😤', color: '#f97316', rate: 1 },
 };
