@@ -1,0 +1,551 @@
+/* v0.3: 나이·분기 표시, 삽화, 경기, 세계, 도감, 편집자 */
+.when {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.when b {
+  font: 400 18px var(--head);
+  white-space: nowrap;
+}
+.when small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.progress small {
+  display: flex;
+  justify-content: space-between;
+}
+.badge.ok {
+  background: #d7f5df;
+  color: var(--good);
+}
+.bar {
+  position: relative;
+}
+.bar u {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background: var(--hot);
+  transform: translateX(-1px);
+}
+.bar i.league {
+  background: #94a3b8;
+}
+.tabs button {
+  font-size: 14px;
+  padding: 10px 2px;
+}
+.btn.slim {
+  padding: 9px 16px;
+  font-size: 16px;
+}
+
+/* 삽화(짤) */
+.art {
+  position: relative;
+  height: 150px;
+  border: var(--line);
+  border-radius: 14px;
+  overflow: hidden;
+  display: grid;
+  place-items: center;
+}
+.art .emo {
+  font-size: 58px;
+  letter-spacing: 6px;
+  filter: drop-shadow(3px 3px 0 #0003);
+  animation: bob 2.2s ease-in-out infinite;
+}
+.art .cap {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 8px;
+  padding: 0 8px;
+  text-align: center;
+  font: 400 22px var(--head);
+  color: #fff;
+  -webkit-text-stroke: 5px var(--ink);
+  paint-order: stroke fill;
+}
+.art.small {
+  height: 64px;
+  border-width: 2px;
+  border-radius: 10px;
+}
+.art.small .emo {
+  font-size: 26px;
+  letter-spacing: 1px;
+  animation: none;
+}
+.bg-pitch {
+  background: repeating-linear-gradient(90deg, #3fae5c 0 40px, #38a154 40px 80px);
+}
+.bg-stadium {
+  background: radial-gradient(circle at 20% 0, #fff8 0 8%, transparent 30%), radial-gradient(circle at 80% 0, #fff8 0 8%, transparent 30%), linear-gradient(#1b2a52 0 62%, #2f9e52 62%);
+}
+.bg-home {
+  background: radial-gradient(#f3c98b 2px, transparent 3px) 0 0/22px 22px, linear-gradient(#ffe9c7 0 70%, #c98d52 70%);
+}
+.bg-studio {
+  background: radial-gradient(circle at 50% -10%, #fff9 0 18%, transparent 45%), linear-gradient(135deg, #7c3aed, #db2777);
+}
+.bg-school {
+  background: linear-gradient(#bfe3ff 0 58%, #3b7a57 58% 64%, #d8c39a 64%);
+}
+.bg-spain {
+  background: radial-gradient(circle at 78% 30%, #fff3b0 0 9%, transparent 10%), linear-gradient(#ff9a3c 0, #ffd166 60%, #c96b3b 60%);
+}
+.bg-night {
+  background: radial-gradient(#fff 1px, transparent 1.5px) 0 0/34px 34px, radial-gradient(#fff 1px, transparent 1.5px) 17px 17px/34px 34px, linear-gradient(#101a3d, #27376e);
+}
+.bg-hospital {
+  background: linear-gradient(90deg, #fff0 49%, #bfe8df 49% 51%, #fff0 51%) 0 0/40px 100%, linear-gradient(#eafaf6 0 72%, #b9ded4 72%);
+}
+.bg-air {
+  background: radial-gradient(ellipse at 25% 35%, #fff 0 12%, transparent 13%), radial-gradient(ellipse at 70% 60%, #fff 0 14%, transparent 15%), linear-gradient(#58b7ff, #bfe6ff);
+}
+.bg-city {
+  background: linear-gradient(90deg, #44506e 0 12%, transparent 12% 16%, #5a6789 16% 30%, transparent 30% 36%, #3b4664 36% 52%, transparent 52% 58%, #5a6789 58% 76%, transparent 76% 82%, #44506e 82%) 0 100%/100% 55% no-repeat, linear-gradient(#ffd9a0, #ffb37a);
+}
+.bg-brazil {
+  background: radial-gradient(circle at 80% 22%, #ffe14d 0 10%, transparent 11%), linear-gradient(#35c0e8 0 50%, #f4dfa0 50% 70%, #1f9d55 70%);
+}
+.bg-office {
+  background: linear-gradient(#cbd5e1 0 66%, #7a5a3a 66%);
+}
+.bg-army {
+  background: radial-gradient(circle at 20% 30%, #5b6b2c 0 14%, transparent 15%), radial-gradient(circle at 70% 60%, #3f4a1f 0 18%, transparent 19%), radial-gradient(circle at 45% 80%, #7d8a45 0 12%, transparent 13%), #69783a;
+}
+.bg-cafe {
+  background: radial-gradient(circle at 50% -20%, #ffe9b8 0 30%, transparent 55%), linear-gradient(#8b5e3c 0 68%, #5a3b22 68%);
+}
+.bg-dream {
+  background: linear-gradient(135deg, #ffd6e8, #d6e4ff 50%, #d9ffe4);
+}
+.bg-locked {
+  background: #cfc9b8;
+}
+
+/* 이벤트 등장 연출 */
+.scene.event {
+  animation: eventIn 0.45s cubic-bezier(0.2, 1.4, 0.4, 1) both;
+}
+.banner {
+  margin: -12px -14px 0;
+  padding: 6px 14px;
+  color: #fff;
+  font: 400 15px var(--head);
+  letter-spacing: 1px;
+  animation: flash 0.7s ease both;
+}
+.scenehead {
+  justify-content: space-between;
+}
+@keyframes eventIn {
+  from {
+    transform: translateY(26px) scale(0.95);
+    opacity: 0;
+  }
+}
+@keyframes flash {
+  from {
+    filter: brightness(3);
+  }
+}
+
+/* 경기 */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 6px 10px;
+  font-size: 13px;
+  text-align: center;
+  color: #fff;
+  background: var(--ink);
+  border-radius: 10px;
+}
+.scoreboard span {
+  color: var(--sun);
+  font-family: var(--head);
+}
+.scoreboard.big {
+  font-size: 15px;
+  padding: 12px;
+}
+.scoreboard b {
+  flex: 1;
+}
+.score2 {
+  font-size: 34px;
+  white-space: nowrap;
+}
+.choice b small {
+  display: block;
+  font-weight: 400;
+  font-size: 12px;
+  color: var(--muted);
+}
+.choice.skill {
+  background: #f0f7ff;
+  border-color: #1e40af;
+}
+.choice b small.realtag {
+  color: #b45309;
+}
+.ratingbox {
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+.rating {
+  flex: none;
+  width: 92px;
+  height: 92px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font: 400 38px/1 var(--head);
+  border: var(--line);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  animation: pop 0.45s ease both;
+}
+.rating small {
+  font: 400 11px var(--body);
+  margin-bottom: 4px;
+}
+.rating.top {
+  background: var(--sun);
+}
+.rating.hi {
+  background: #d7f5df;
+}
+.rating.mid {
+  background: #fff;
+}
+.rating.lo {
+  background: #ffe1dc;
+}
+.rt.top {
+  color: #b45309;
+}
+.rt.hi {
+  color: var(--good);
+}
+.rt.lo {
+  color: var(--bad);
+}
+.mom {
+  font-family: var(--head);
+  color: #b45309;
+}
+.quote {
+  font-size: 14px;
+}
+table.stat {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+table.stat th {
+  text-align: left;
+  font-weight: 400;
+  color: var(--muted);
+  padding: 5px 0;
+}
+table.stat td {
+  text-align: right;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+table.stat tr {
+  border-bottom: 1px dashed #d9cfb6;
+}
+table.log th small {
+  color: var(--muted);
+}
+.plays {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+.plays .fail {
+  color: var(--muted);
+}
+.learned {
+  padding: 8px 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--ink) !important;
+  background: #fff6cc;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  animation: pop 0.4s ease both;
+}
+.action small i {
+  font-style: normal;
+  color: #1e40af;
+}
+
+/* 세계 */
+.compare {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.compare label {
+  font-size: 12px;
+  color: var(--muted);
+}
+.compare b {
+  float: right;
+  color: var(--ink);
+}
+.ladder {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.rung {
+  padding: 6px 8px;
+  background: #fff;
+  border: 2px solid #d9cfb6;
+  border-radius: 10px;
+}
+.rung.here {
+  border-color: var(--ink);
+  background: #fff6cc;
+}
+.rungtop {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+.rungtop i {
+  font-style: normal;
+  font-weight: 400;
+  font-size: 11px;
+  color: var(--hot);
+}
+.fit {
+  flex: none;
+  font-size: 11px;
+  padding: 0 6px;
+  border: 1.5px solid currentColor;
+  border-radius: 999px;
+}
+.f0 {
+  color: #9a937f;
+}
+.f1 {
+  color: #b45309;
+}
+.f2 {
+  color: #1e40af;
+}
+.f3 {
+  color: var(--good);
+}
+.grid3 b {
+  font-size: 22px;
+}
+.grid3.five {
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+.grid3.five b {
+  font-size: 19px;
+}
+.route {
+  list-style: none;
+  padding: 0;
+  margin: 6px 0 0;
+  font-size: 13px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.route li {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+}
+.route .done {
+  color: var(--good);
+  font-weight: 700;
+}
+.route .missed {
+  color: #9a937f;
+  text-decoration: line-through;
+}
+.route small {
+  color: var(--muted);
+  font-weight: 400;
+}
+.skillchip {
+  background: #e6f0ff;
+}
+
+/* 도감 */
+.tabs.inner {
+  margin: 12px 0;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.tabs.inner button {
+  border-radius: 0 !important;
+}
+.chip.pick {
+  cursor: pointer;
+  font-family: inherit;
+}
+.chip.pick.on {
+  background: var(--ink);
+  color: #fff;
+}
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.ecard {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  padding: 6px;
+  font-size: 12px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 12px;
+}
+.ecard b {
+  font-size: 12px;
+  line-height: 1.25;
+}
+.ecard small {
+  font-size: 10px;
+  color: var(--muted);
+}
+.ecard.locked {
+  background: #ece7da;
+  border-style: dashed;
+  color: #8a8472;
+}
+
+/* 편집자 */
+.editor label {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--muted);
+}
+.editor input,
+.editor select,
+.editor textarea {
+  width: 100%;
+  min-width: 0;
+  padding: 8px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--ink);
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-radius: 8px;
+}
+.editor textarea.code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 12px;
+}
+.cols {
+  display: flex;
+  gap: 8px;
+  align-items: end;
+}
+.cols > * {
+  flex: 1;
+  min-width: 0;
+}
+.tools {
+  margin: 8px 0;
+}
+.editor label.filebtn {
+  position: relative;
+  flex-direction: row;
+  justify-content: center;
+  color: var(--ink);
+}
+.filebtn input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+.editor label.check {
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+}
+.editor label.check input {
+  width: auto;
+}
+.catrow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #fff;
+  border: 2px solid var(--ink);
+  border-left-width: 10px;
+  border-radius: 10px;
+}
+.catrow b {
+  flex: 1;
+  font-size: 14px;
+}
+.catrow b small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.catrow label {
+  flex-direction: row;
+  align-items: center;
+}
+.editor input.tiny {
+  width: 54px;
+  padding: 4px;
+  text-align: center;
+}
+.editor input[type="color"] {
+  width: 36px;
+  height: 32px;
+  padding: 0;
+}
+.evrow span {
+  flex: none;
+}
+code {
+  padding: 0 4px;
+  font-size: 11px;
+  background: var(--paper-2);
+  border-radius: 4px;
+}
+@media (min-width: 900px) {
+  #root:has(.editor),
+  #root:has(.codex) {
+    max-width: 780px;
+  }
+}

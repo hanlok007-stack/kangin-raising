@@ -1,0 +1,332 @@
+import type { GameEvent } from '../../engine/types';
+
+const YOUTH = ['kr', 'school', 'es', 'bra'];
+
+// 프로 구간(2019~2023)과 대표팀·병역 이벤트.
+// 병역 제도는 사실대로 쓴다: 아시안게임 금메달·올림픽 메달 → 예술·체육요원 편입(흔히 말하는 "군면제").
+// 월드컵과 U-20 월드컵에는 병역 혜택이 없다.
+export const pro: GameEvent[] = [
+  {
+    id: 's_ag2018',
+    cat: '병역',
+    at: [2018, 3],
+    when: { stage: YOUTH, min: { ovr: 62, nat: 15 } },
+    title: '자카르타·팔렘방 아시안게임',
+    text: '아시안게임 명단 발표를 앞두고 "17세 월반 발탁" 여론이 뜨겁다. 금메달을 따면 병역특례(예술·체육요원 편입)다. 형들에게는 선수 생명이 걸린 대회다.',
+    choices: [
+      {
+        label: '"뽑아만 주신다면 뛰겠습니다"',
+        check: { stats: { ovr: 1 }, dc: 68 },
+        ok: { text: '깜짝 발탁. 막내로 벤치를 지키다 결승 연장에 투입됐다. 금메달이 목에 걸렸다. 만 17세에 병역 문제가 끝났다. 실제 역사에는 없던 일이다.', fx: { fame: 15, nat: 15, men: 2 }, flag: ['exempt', 'nat'], real: false, news: '[아시안게임] 금메달! 17세 이강인, 최연소 병역특례' },
+        fail: { text: '명단에 이름은 없었다. 감독은 "아직 이르다"고 했다.', fx: { stress: 6, nat: 3 }, real: false },
+      },
+      { label: '"아직 제 차례가 아니에요"', ok: { text: 'TV로 형들의 금메달을 봤다. 시상대에서 우는 형들을 보며 생각했다. 나도 언젠가 저기 서야 한다.', fx: { men: 2, nat: 3 }, real: true } },
+    ],
+  },
+  {
+    id: 's_pro_start',
+    cat: '진로',
+    at: [2019, 1],
+    when: { has: ['pro'] },
+    title: '프로의 세계',
+    text: '프로 선수가 됐다. 라커룸에는 아버지뻘 선수도 있고, 연봉이 내 백 배인 선수도 있다. 유소년 때의 이름값은 여기서 아무 의미가 없다. 그리고 이제부터 "에이전시" 탭에서 할 수 있는 일이 늘어난다.',
+    choices: [
+      { label: '선배들에게 먼저 인사한다', ok: { text: '주장이 사물함 자리를 정해 줬다. 창가 쪽, 나쁘지 않다.', fx: { mates: 10 } } },
+      { label: '훈련으로 증명한다', ok: { text: '첫 훈련에서 주전 수비수를 한 번 제쳤다. 두 번째에는 걷어차였다. 환영 인사다.', fx: { coach: 8, phy: 1 } } },
+      { label: '"주전으로 뛰러 왔습니다"', ok: { text: '기자회견장이 술렁였다. 감독의 한쪽 눈썹이 올라갔다.', fx: { fame: 8, coach: -6, men: 2 }, news: '[입단 회견] 이강인 "벤치에 앉으러 온 게 아니다"' } },
+    ],
+  },
+  {
+    id: 's_univ_start',
+    cat: '진로',
+    at: [2019, 1],
+    when: { has: ['univ'] },
+    title: '캠퍼스의 봄',
+    text: '대학 축구부에 들어왔다. 수업과 훈련을 오가는 생활. 프로 스카우트는 U리그 경기장에도 온다. 길은 아직 끊기지 않았다.',
+    choices: [
+      { label: '1학년 에이스를 노린다', ok: { text: '개막전 선발. 선배들의 견제가 만만치 않다.', fx: { coach: 8, mates: -3 } } },
+      { label: '학점도 챙긴다', ok: { text: '스포츠 심리학 수업이 의외로 재미있다.', fx: { iq: 2, men: 1 } } },
+    ],
+  },
+  {
+    id: 's_u20wc',
+    cat: '대표팀',
+    at: [2019, 2],
+    when: { min: { ovr: 60, nat: 20 } },
+    title: 'U-20 월드컵, 폴란드',
+    text: '두 살 위 형들과 나가는 U-20 월드컵. 등번호 10번이 내게 왔다. (이 대회에는 병역 혜택이 없다. 그냥, 세계 무대다.)',
+    choices: [
+      {
+        label: '팀의 중심에서 뛴다',
+        check: { stats: { pas: 1, dri: 1, sho: 1 }, dc: 64, trait: 'left' },
+        ok: { text: '2골 4도움. 한국 남자 축구 사상 첫 FIFA 대회 결승. 준우승이었지만 대회 최우수선수상, 골든볼이 내 손에 있다.', fx: { fame: 22, nat: 22, men: 2 }, goal: 2, assist: 4, flag: ['goldenball', 'nat2'], real: true, news: '[U-20 월드컵] 한국 준우승… 이강인, 골든볼 수상' },
+        fail: { text: '8강에서 멈췄다. 라커룸에서 형들이 울었다. 나도 울었다.', fx: { nat: 6, stress: 8, men: 1 }, flag: ['nat2'], real: true },
+      },
+      { label: '소속팀에 남는다', ok: { text: '구단은 고마워했다. 형들의 결승전은 숙소 TV로 봤다.', fx: { coach: 8, nat: -8 }, real: false } },
+    ],
+  },
+  {
+    id: 's_a_debut',
+    cat: '대표팀',
+    at: [2019, 3],
+    when: { min: { nat: 40 } },
+    title: 'A대표팀 첫 소집',
+    text: '성인 국가대표팀 명단에 이름이 올랐다. 파주 훈련장 식당에서 TV로만 보던 선배들이 밥을 먹고 있다.',
+    choices: [
+      {
+        label: '데뷔전에 나선다',
+        check: { stats: { pas: 1, men: 1 }, dc: 60 },
+        ok: { text: '프리킥이 골대를 맞혔다. 골은 아니었지만 해설자가 말했다. "앞으로 10년은 이 선수를 보게 될 겁니다."', fx: { nat: 12, fame: 8 }, flag: ['a_debut'], real: true, news: '[A매치] 이강인 데뷔… "막내가 가장 침착했다"' },
+        fail: { text: '무난한 데뷔전이었다. 긴장해서 기억이 잘 나지 않는다.', fx: { nat: 4, stress: 4 }, flag: ['a_debut'], real: true },
+      },
+      { label: '컨디션 핑계로 고사한다', ok: { text: '협회는 알겠다고 했다. 다음 소집 연락은 한참 오지 않았다.', fx: { coach: 5, nat: -12 }, real: false } },
+    ],
+  },
+  {
+    id: 's_minutes',
+    cat: '감독',
+    at: [2019, 4],
+    npc: 'borja',
+    when: { stage: ['val', 'psg', 'epl'] },
+    title: '출전 시간',
+    text: '감독의 전술에는 내 자리가 없다. 4-4-2의 측면은 많이 뛰는 선수의 몫이고, 중앙은 덩치들의 자리다. 석 달째 교체로 10분씩 뛴다.',
+    choices: [
+      { label: '뛸 수 있는 팀을 알아본다', ok: { text: '에이전시 탭의 "임대 요청"과 "이적 요청"이 눈에 들어온다.', fx: { stress: 4 }, flag: ['want_out'] } },
+      { label: '측면에서라도 뛴다', ok: { text: '수비 가담, 왕복 달리기. 내 축구는 아니지만 명단에는 든다.', fx: { phy: 2, coach: 6, stress: 5 } } },
+      { label: '묵묵히 기다린다', ok: { text: '훈련이 끝나면 혼자 남아 프리킥을 찼다. 기다림도 실력이다.', fx: { men: 2, sho: 1, stress: 8 } } },
+    ],
+  },
+  {
+    id: 's_covid',
+    cat: '생활',
+    at: [2020, 2],
+    when: { any: ['pro', 'univ'] },
+    title: '멈춰 선 리그',
+    text: '2020년 봄. 전 세계 축구가 멈췄다. 경기장은 잠겼고, 훈련은 각자 집에서 한다. 처음으로 축구 없는 봄이다.',
+    choices: [
+      { label: '거실을 체육관으로 만든다', ok: { text: '소파를 밀고 매트를 깔았다. 아랫집에서 올라왔다.', fx: { phy: 2, men: 1 } } },
+      { label: '지난 경기 영상을 전부 본다', ok: { text: '내가 뛴 모든 경기를 다시 봤다. 부끄러운 장면이 많았다. 그래서 좋았다.', fx: { iq: 3 } } },
+      { label: '가족과 시간을 보낸다', ok: { text: '몇 년 만에 온 가족이 세 끼를 같이 먹었다.', fx: { family: 8, stress: -15 } } },
+    ],
+  },
+  {
+    id: 's_renew',
+    cat: '이적',
+    at: [2020, 4],
+    when: { stage: ['val'] },
+    title: '재계약 서류',
+    text: '구단이 재계약서를 내밀었다. 조건은 좋다. 하지만 출전 시간에 대한 약속은 어디에도 없다.',
+    choices: [
+      { label: '사인하지 않는다', ok: { text: '펜을 내려놓았다. 10년을 보낸 구단과의 이별이 시작됐다.', fx: { coach: -10, men: 2 }, flag: ['leaving'], real: true, news: '[이적설] 이강인, 발렌시아 재계약 거부' } },
+      { label: '재계약한다', ok: { text: '구단이 성대하게 발표했다. 팬들은 환호했고, 감독의 전술판은 그대로였다.', fx: { coach: 12, mates: 5 }, flag: ['loyal'], real: false } },
+    ],
+  },
+  {
+    id: 's_mallorca',
+    cat: '이적',
+    at: [2021, 3],
+    when: { stage: ['val'] },
+    title: '섬에서 온 제안',
+    text: '지중해의 작은 구단, 마요르카에서 연락이 왔다. 감독이 직접 전화했다. "여기 오면 넌 매주 뛴다. 그리고 공은 전부 네게 간다."',
+    choices: [
+      { label: '마요르카로 간다', ok: { text: '10년을 산 도시를 떠났다. 섬의 작은 경기장에서, 처음으로 팀의 중심이 됐다.', stage: 'mal', set: { coach: 65 }, fx: { men: 2 }, flag: ['m_mal'], real: true, news: '[오피셜] 이강인, 마요르카 이적… 발렌시아와 10년 동행 마침표' } },
+      { label: '남아서 경쟁한다', ok: { text: '익숙한 훈련장, 익숙한 벤치. 증명할 때까지 떠나지 않는다.', fx: { coach: 5, stress: 6 }, real: false } },
+      { label: 'K리그로 임대를 간다', ok: { text: '한국 팬들 앞에서 뛰는 건 처음이다.', stage: 'kl', set: { coach: 68, homesick: 0 }, fx: { family: 10, fame: 6 }, real: false } },
+    ],
+  },
+  {
+    id: 's_olympic',
+    cat: '병역',
+    at: [2021, 3],
+    when: { min: { nat: 45 }, age: [18, 99] },
+    title: '도쿄 올림픽',
+    text: '올림픽 대표팀에 뽑혔다. 메달을 따면 병역특례다. 형들의 눈빛이 다르다. 여기서는 동메달 결정전이 결승전보다 무섭다고들 한다.',
+    choices: [
+      {
+        label: '올림픽에 간다',
+        check: { stats: { sho: 1, pas: 1, men: 1 }, dc: 88, trait: 'left' },
+        ok: { text: '조별리그 3골, 그리고 동메달 결정전의 결승 프리킥. 메달이 목에 걸렸다. 병역 문제가 여기서 끝났다. 실제 역사와 다른 세계선이다.', fx: { fame: 18, nat: 15 }, goal: 4, flag: ['exempt', 'oly_medal'], real: true, news: '[올림픽] 동메달! 이강인 결승골… 병역특례 확정' },
+        fail: { text: '조별리그에서 3골을 넣었지만 8강에서 무너졌다. 메달은 없었다. 숙제는 그대로 남았다.', fx: { fame: 6, nat: 6, stress: 8 }, goal: 3, real: true },
+      },
+      { label: '소속팀 프리시즌에 집중한다', ok: { text: '새 시즌 준비는 완벽했다. 올림픽 중계는 일부러 보지 않았다.', fx: { coach: 8, nat: -6 }, real: false } },
+    ],
+  },
+  {
+    id: 's_notice',
+    cat: '병역',
+    at: [2022, 1],
+    when: { not: ['exempt'], age: [18, 99] },
+    title: '병무청에서 온 우편',
+    text: '병역판정검사 통지서가 왔다. 길은 셋이다. 아시안게임 금메달이나 올림픽 메달로 예술·체육요원이 되거나, 만 27세 전에 상무에 지원하거나, 현역으로 입대하거나. 월드컵은 아무리 잘해도 해당이 없다.',
+    choices: [
+      { label: '아시안게임 금메달에 건다', ok: { text: '달력에 2023년 가을을 표시했다. 그때까지 대표팀에서 자리를 지켜야 한다.', fx: { nat: 5, men: 1 }, flag: ['ag_focus'] } },
+      { label: '일찍 다녀온다', ok: { text: '"어차피 갈 거면 빨리." 입영 통지서에 서명했다.', end: 'military' } },
+      { label: '서랍에 넣어 둔다', ok: { text: '서랍을 닫았다. 닫는다고 없어지는 건 아니다.', fx: { stress: 5 } } },
+    ],
+  },
+  {
+    id: 's_wc',
+    cat: '대표팀',
+    at: [2022, 4],
+    when: { min: { nat: 50 }, age: [18, 99] },
+    title: '카타르 월드컵',
+    text: '월드컵. 조별리그 2차전, 0:2로 지고 있다. 후반 12분, 감독이 내 이름을 부른다. (월드컵에는 병역 혜택이 없다. 여기서 뛰는 이유는 하나, 월드컵이니까.)',
+    choices: [
+      {
+        label: '들어가자마자 왼발 크로스',
+        check: { stats: { pas: 1 }, dc: 72, trait: 'left' },
+        ok: { text: '투입 1분. 왼쪽에서 올린 크로스가 동료의 머리에 정확히 닿았다. 경기장이 뒤집어졌다. 한국은 16강에 올랐다.', fx: { fame: 22, nat: 12 }, assist: 1, flag: ['wc', 'wc_hero'], real: true, news: '[월드컵] 이강인 투입 1분 만에 도움… 한국 16강 진출' },
+        fail: { text: '크로스는 수비에 걸렸다. 그래도 월드컵 잔디를 밟았다.', fx: { fame: 5, nat: 3 }, flag: ['wc'], real: true },
+      },
+      {
+        label: '직접 해결한다',
+        check: { stats: { sho: 1, dri: 1 }, dc: 80, trait: 'left' },
+        ok: { text: '수비 둘을 벗기고 감아 찼다. 월드컵 데뷔골. 전 세계 중계 화면에 내 얼굴이 잡혔다.', fx: { fame: 30, nat: 15 }, goal: 1, flag: ['wc', 'wc_hero'], real: false, news: '[월드컵] 이강인 원더골! 외신 "카타르의 발견"' },
+        fail: { text: '욕심이 앞섰다. 공을 뺏겼고 추가 실점으로 이어졌다.', fx: { fame: -4, nat: -6, stress: 12 }, flag: ['wc'], real: false },
+      },
+    ],
+  },
+  {
+    id: 's_wc_tv',
+    cat: '대표팀',
+    at: [2022, 4],
+    when: { max: { nat: 49.99 }, age: [18, 99] },
+    title: 'TV로 보는 월드컵',
+    text: '최종 명단에 내 이름은 없었다. 치킨을 시켜 놓고 TV 앞에 앉았다. 화면 속 저 자리가 내 자리일 수도 있었다.',
+    choices: [
+      { label: '4년 뒤를 다짐한다', ok: { text: 'TV를 끄고 운동화를 신었다.', fx: { men: 3, nat: 4 } } },
+      { label: '치킨이나 먹는다', ok: { text: '한국이 골을 넣었을 때 제일 크게 소리 질렀다. 그건 진심이었다.', fx: { stress: -10 } } },
+    ],
+  },
+  {
+    id: 's_psg',
+    cat: '이적',
+    at: [2023, 2],
+    when: { stage: ['mal', 'val'], min: { ovr: 74, fame: 40 } },
+    title: '파리에서 온 전화',
+    text: '시즌이 끝나자 에이전트의 전화가 불이 났다. 그중 한 통이 파리에서 왔다. "별들 사이에서 뛰어 볼 생각 있나?"',
+    choices: [
+      { label: '파리로 간다', ok: { text: '에펠탑 앞에서 유니폼을 들었다. 슛돌이 꼬마가 여기까지 왔다.', stage: 'psg', set: { coach: 45 }, fx: { fame: 15 }, flag: ['m_psg'], real: true, news: '[오피셜] 이강인, 파리 생제르맹 입단' } },
+      { label: '에이스로 남는다', ok: { text: '작은 팀의 왕으로 남기로 했다. 팬들이 내 이름으로 노래를 만들었다.', fx: { coach: 15, mates: 8 }, real: false } },
+      { label: '프리미어리그의 역제안을 받는다', need: { any: ['agent', 'bigclub_talk'] }, ok: { text: '런던의 비는 차갑지만 경기장은 뜨겁다.', stage: 'epl', set: { coach: 48 }, fx: { fame: 12 }, flag: ['m_big'], real: false, news: '[오피셜] 이강인, 프리미어리그행' } },
+    ],
+  },
+  {
+    id: 's_ag_release',
+    cat: '병역',
+    at: [2023, 3],
+    when: { not: ['exempt'], min: { nat: 40 }, age: [18, 99] },
+    title: '차출 협상',
+    text: '항저우 아시안게임 명단에 이름이 올랐다. 문제는 구단이다. 아시안게임은 구단이 선수를 보내 줄 의무가 없는 대회다. 시즌 중에 주전을 한 달이나 내줄 구단은 드물다.',
+    choices: [
+      {
+        label: '단장을 직접 찾아간다',
+        check: { stats: { men: 1, coach: 1 }, dc: 52, boost: { agent: 6, agent2: 8 } },
+        ok: { text: '"이 대회가 제 선수 생명입니다." 단장이 한참 생각하다 말했다. "다녀와. 대신 금메달 들고 와."', fx: { men: 1 }, flag: ['ag_go'], real: true },
+        fail: { text: '구단은 완강했다. 대회가 시작된 뒤에야 늦게 합류를 허락받았다. 몸을 만들 시간이 없다.', fx: { stress: 10, stamina: -15 }, flag: ['ag_go'], real: true },
+      },
+      { label: '구단의 뜻에 따른다', ok: { text: '명단에서 이름이 빠졌다. 다음 아시안게임은 3년 뒤다.', fx: { coach: 8, nat: -10, stress: 6 }, real: false } },
+    ],
+  },
+  {
+    id: 's_ag2023',
+    cat: '병역',
+    at: [2023, 4],
+    when: { has: ['ag_go'], not: ['exempt'] },
+    title: '항저우, 결승 한일전',
+    text: '아시안게임 결승. 상대는 일본. 이 한 경기에 스물두 명의 2년이 걸려 있다. 라커룸에서 아무도 말을 하지 않는다.',
+    choices: [
+      {
+        label: '경기를 조율한다',
+        check: { stats: { pas: 1, iq: 1 }, dc: 68 },
+        ok: { text: '2:1 역전승. 금메달. 시상대에서 형들이 서로 끌어안고 울었다. 예술·체육요원 편입 — 4주 기초군사훈련과 봉사활동으로 병역을 대신한다.', fx: { fame: 15, nat: 15, stress: -20 }, assist: 1, flag: ['exempt', 'ag_gold'], real: true, news: '[아시안게임] 한일전 승리, 금메달! 이강인 병역특례' },
+        fail: { text: '1:2. 은메달. 아무도 메달을 목에 걸고 싶어 하지 않았다. 숙제는 그대로다.', fx: { stress: 18, nat: 4 }, real: true },
+      },
+      {
+        label: '내가 끝낸다',
+        check: { stats: { sho: 1, dri: 1 }, dc: 74, trait: 'left' },
+        ok: { text: '후반 막판, 왼발 프리킥이 골문 구석에 꽂혔다. 결승골. 금메달.', fx: { fame: 22, nat: 18, stress: -20 }, goal: 1, flag: ['exempt', 'ag_gold'], real: true, news: '[아시안게임] 이강인 결승 프리킥! 한일전 승리, 금메달' },
+        fail: { text: '프리킥이 골대를 맞고 나왔다. 그 소리가 아직도 귀에 남아 있다. 은메달.', fx: { stress: 22, men: 1 }, real: true },
+      },
+    ],
+  },
+
+  // ── 병역을 둘러싼 일상
+  {
+    id: 'm_done',
+    cat: '병역',
+    auto: 1,
+    when: { has: ['exempt'], not: ['exempt_done'], age: [18, 99] },
+    title: '4주간의 훈련소',
+    text: '예술·체육요원도 기초군사훈련은 받는다. 머리를 밀고 논산에 입소했다. 조교가 번호를 부른다. "137번 훈련병!"',
+    choices: [
+      { label: '"137번 훈련병 이강인!"', ok: { text: '화생방에서 울었고, 행군에서 물집이 터졌고, 수료식에서 엄마가 울었다. 남은 건 봉사활동 544시간이다.', fx: { men: 3, phy: 1, stamina: -15, family: 5 }, flag: ['exempt_done'], news: '[포토] 훈련소 수료한 이강인 "충성!"' } },
+      { label: '족구 시간에 본색을 드러낸다', ok: { text: '중대 대항 족구 결승. 왼발 스파이크에 중대장이 일어나 박수를 쳤다. 포상 휴가는 없었다.', fx: { men: 2, fame: 4, stamina: -12 }, flag: ['exempt_done'] } },
+    ],
+  },
+  {
+    id: 'm_senior',
+    cat: '병역',
+    weight: 3,
+    when: { not: ['exempt'], age: [19, 99] },
+    title: '선배의 조언',
+    text: '상무에서 전역한 선배와 밥을 먹었다. "군대스리가도 축구야. 근데 유럽에서 2년 비우면 자리 없어진다. 너는 아시안게임이 답이야."',
+    choices: [
+      { label: '대표팀에 더 신경 쓴다', ok: { text: 'A매치 소집 때마다 누구보다 먼저 도착했다.', fx: { nat: 6, men: 1 } } },
+      { label: '"그때 가서 생각할게요"', ok: { text: '선배가 웃었다. "다들 그러다 스물일곱 된다."', fx: { stress: 3 } } },
+    ],
+  },
+  {
+    id: 'm_wildcard',
+    cat: '병역',
+    weight: 2,
+    when: { not: ['exempt'], age: [20, 99], min: { nat: 35 } },
+    title: '와일드카드 형의 전화',
+    text: '아시안게임 와일드카드로 뽑힐 형에게서 전화가 왔다. "야, 나 이번이 마지막 기회다. 너만 믿는다. 진짜로."',
+    choices: [
+      { label: '"형, 제가 떠먹여 드릴게요"', ok: { text: '형이 전화기 너머에서 한참 웃었다. 어깨가 무거워졌지만 싫지 않다.', fx: { nat: 5, mates: 5, stress: 4 } } },
+      { label: '"부담 주지 마세요…"', ok: { text: '형이 미안하다고 했다. 전화를 끊고 한참 천장을 봤다.', fx: { stress: 6, men: 1 } } },
+    ],
+  },
+  {
+    id: 'm_comments',
+    cat: '병역',
+    weight: 2,
+    when: { not: ['exempt'], age: [19, 99], min: { fame: 40 } },
+    title: '병역 기사의 댓글',
+    text: '"이강인 군 문제 어떻게 되나" 기사가 떴다. 댓글이 2천 개다. "금메달 따면 되지" "못 따면?" "상무 가면 되지" "유럽에서 잘하는 게 국위선양 아님?"',
+    choices: [
+      { label: '읽지 않는다', ok: { text: '창을 닫았다. 답은 경기장에 있다.', fx: { men: 1 } } },
+      { label: '끝까지 읽는다', ok: { text: '2천 개를 다 읽었다. 잠이 오지 않았다.', fx: { stress: 12 } } },
+    ],
+  },
+  {
+    id: 'm_scout',
+    cat: '병역',
+    auto: 0.5,
+    when: { has: ['ag_focus'], not: ['exempt', 'ag_seen'], age: [21, 99] },
+    title: '관중석의 대표팀 감독',
+    text: '아시안게임 대표팀 감독이 경기장에 왔다. 오늘 경기가 곧 면접이다.',
+    choices: [
+      {
+        label: '평소보다 한 발 더 뛴다',
+        check: { stats: { ovr: 1 }, rel: 0 },
+        ok: { text: '경기 뒤 감독이 엄지를 들어 보였다. "10번은 네 거다."', fx: { nat: 14 }, flag: ['ag_seen'] },
+        fail: { text: '의식하다 보니 실수가 잦았다. 감독은 전반만 보고 자리를 떴다.', fx: { nat: -3, stress: 6 }, flag: ['ag_seen'] },
+      },
+      { label: '의식하지 않는다', ok: { text: '평소대로 했다. 나쁘지도 좋지도 않았다.', fx: { nat: 4 }, flag: ['ag_seen'] } },
+    ],
+  },
+  {
+    id: 'm_petition',
+    cat: '황당',
+    weight: 1,
+    when: { has: ['wc_hero'], not: ['exempt'] },
+    title: '국민청원',
+    text: '"월드컵 영웅에게 병역특례를 주자"는 청원에 30만 명이 서명했다. 뉴스에서는 찬반 토론이 한창이다.',
+    choices: [
+      { label: '"규정대로 하겠습니다"', ok: { text: '담담한 한마디에 여론이 오히려 좋아졌다. 청원은 논의만 되다 끝났다. 월드컵에는 병역 혜택이 없다.', fx: { fame: 6, men: 2 } } },
+      { label: '조용히 지켜본다', ok: { text: '청원은 흐지부지됐다. 답은 여전히 아시안게임이다.', fx: { stress: 4 } } },
+    ],
+  },
+];
