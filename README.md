@@ -4,6 +4,8 @@
 
 > 팬이 만든 패러디 픽션입니다. 주인공 외 등장인물과 사건은 모두 지어낸 것이며, 실제 인물·구단·단체와 관계가 없습니다.
 
+플레이: https://hanlok007-stack.github.io/kangin-raising/
+
 ## 실행
 
 ```bash

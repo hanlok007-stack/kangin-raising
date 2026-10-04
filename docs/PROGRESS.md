@@ -46,7 +46,8 @@
   그래서 Vite 7을 쓰고 `package.json`의 `overrides`로 rollup → `@rollup/wasm-node`, esbuild → `esbuild-wasm`으로 바꿔 두었다.
   Vite 8(rolldown)이나 TypeScript 7(네이티브)로 올리면 실행이 막힌다.
 - 5173 포트는 이 PC의 다른 프로그램이 쓰고 있어 5180으로 고정했다.
-- `gh` CLI는 설치되어 있지 않다. GitHub 저장소 생성과 푸시는 아직 하지 않았다.
+- 저장소: https://github.com/hanlok007-stack/kangin-raising · 배포 주소: https://hanlok007-stack.github.io/kangin-raising/
+  `main`에 푸시하면 GitHub Actions가 테스트 → 빌드 → Pages 배포를 한다. `gh` CLI는 설치되어 있지 않다.
 - 밸런스 손잡이: `src/data/kangin/index.ts`의 `gainScale`(성장), `matchHard`(경기 난이도).
 
 ## 다음 단계 후보
