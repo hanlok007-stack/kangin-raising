@@ -179,3 +179,21 @@
     font-size: 30px;
   }
 }
+
+/* 가로 화면의 좁은 상단 바: 양 끝 나이 표시는 숨기고 진행률만 */
+@media (orientation: landscape) and (max-height: 560px) {
+  .game .top .progress small span:not(:nth-child(2)) {
+    display: none;
+  }
+  .game .top .progress small {
+    justify-content: center;
+  }
+  .game .top .when b {
+    font-size: 15px;
+  }
+  .sticky {
+    background: var(--paper);
+    border-top: 2px dashed #d9cfb6;
+    border-radius: 0;
+  }
+}

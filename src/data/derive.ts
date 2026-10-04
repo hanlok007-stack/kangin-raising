@@ -82,7 +82,7 @@ export function legend(spec: LegendSpec): Pack {
     ...spec,
     world: { ...spec.world, leagues: kangin.world.leagues },
     positions: { ...kangin.positions, ...spec.positions },
-    actions: kangin.actions.flatMap((a) => {
+    actions: (text(kangin.actions) as Pack['actions']).flatMap((a) => {
       const when = fit(a.when);
       return when === null || (a.event && !evIds.has(a.event)) ? [] : [{ ...a, when }];
     }),
