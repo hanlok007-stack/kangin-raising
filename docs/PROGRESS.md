@@ -53,6 +53,8 @@ v0.4 반기/분기 가변 턴·은퇴·의욕/변덕·해외 유스·손흥민/�
     3. 프로젝트 폴더에서 `npm run build; npx cap sync android`
     4. `android\local.properties`에 `sdk.dir=C\:\\Users\\eetlk\\android-dev\\sdk` 기록 후 `cd android; .\gradlew.bat assembleDebug` → `android\app\build\outputs\apk\debug\app-debug.apk`
     5. 되면 `.\gradlew.bat bundleRelease` (서명 키는 사용자가 비밀번호를 정해야 하므로 만들지 않는다. 서명되지 않은 AAB까지만.)
+  - 2026-10-04 22시경 상태: JDK 21 정상 실행 확인(보안 정책에 막히지 않음), 명령줄 도구 설치됨. 위 1~4번을 한 번에 돌리는 스크립트를 백그라운드로 시작했고 로그는 `C:Userseetlkandroid-devuild-log.txt`에 쌓인다. 먼저 이 로그와 `androidappuildoutputsapkdebugapp-debug.apk` 유무를 확인하고, 끝나지 않았거나 실패했으면 실패한 단계부터 다시 한다.
+  - 사용자 결정: 공개 배포(푸시)는 아침에 사용자가 확인한 뒤 한꺼번에. Play 개발자 계정은 아직 없음 → AAB와 스토어 등록 자료(`docs/STORE.md`: 앱 설명, 스크린샷 목록, 콘텐츠 등급 답변 초안, 개인정보처리방침 초안)까지 준비.
   - java.exe, aapt2.exe 등이 "Application Control policy"에 막히면 거기서 멈추고 무엇이 막혔는지 이 파일에 적는다.
   - 도구 위치: `C:\Users\eetlk\android-dev\` (JDK, Android SDK). 환경변수는 명령마다 `JAVA_HOME`, `ANDROID_HOME`으로 넘긴다.
   - `npm i -D @capacitor/cli @capacitor/core @capacitor/android` → `npx cap add android` → `npm run build && npx cap sync android` → `android\gradlew.bat assembleDebug` (그다음 `bundleRelease`).
