@@ -8,14 +8,14 @@ export interface Meta {
   runs: number;
   best: number;
   legend: Record<string, string[]>; // 선수별로 모은 레전드 카드(연표 id)
-  unlocked: boolean; // 첫 선수를 프로에 데뷔시키면 다른 선수가 열린다
+  chapter: number; // 지금까지 열린 장 (1부터)
 }
 
 // 편집자 화면에서 바꿀 수 있는 팩의 부분
 export type Custom = Pick<Pack, 'cats' | 'events' | 'art'>;
 
-const SAVE = 'kangin.save.v3';
-const CKPT = 'kangin.ckpt.v3';
+const SAVE = 'kangin.save.v4';
+const CKPT = 'kangin.ckpt.v4';
 const META = 'kangin.meta.v1';
 const CUSTOM = 'kangin.custom.v1';
 const PICK = 'kangin.pick.v1';
@@ -52,19 +52,29 @@ export const saveCustom = (c: Custom | null) => write(CUSTOM, c);
 export const loadPick = () => read<string>(PICK);
 export const savePick = (id: string) => write(PICK, id);
 
-export const loadMeta = (): Meta => ({ events: [], endings: [], runs: 0, best: 0, legend: {}, unlocked: false, ...read<Meta>(META) });
+export const loadMeta = (): Meta => ({ events: [], endings: [], runs: 0, best: 0, legend: {}, chapter: 1, ...read<Meta>(META) });
+
+// 관리자 설정의 "초기화": 이 게임이 저장한 것을 전부 지운다
+export function resetAll() {
+  try {
+    for (const k of Object.keys(localStorage)) if (k.startsWith('kangin.')) localStorage.removeItem(k);
+  } catch {
+    // 무시
+  }
+}
 
 // 상태에서 새로 발견한 이벤트·엔딩·레전드 카드를 도감에 합친다. 바뀐 게 없으면 같은 객체를 돌려준다.
-export function mergeMeta(meta: Meta, p: Pack, s: GameState, wasEnded: boolean): Meta {
+// reach: 이 판의 진행으로 열리는 장
+export function mergeMeta(meta: Meta, p: Pack, s: GameState, wasEnded: boolean, reach: number): Meta {
   const events = s.seen.filter((id) => !meta.events.includes(id));
   const have = meta.legend[p.id] ?? [];
   const cards = milestones(p, s)
     .filter((m) => m.done && !have.includes(m.id))
     .map((m) => m.id);
   const newEnding = !!s.ending && !wasEnded;
-  const unlock = !meta.unlocked && 'pro' in s.flags;
+  const unlock = reach > meta.chapter;
   if (!events.length && !cards.length && !newEnding && !unlock) return meta;
-  const next: Meta = { ...meta, events: [...meta.events, ...events], legend: { ...meta.legend, [p.id]: [...have, ...cards] }, unlocked: meta.unlocked || unlock };
+  const next: Meta = { ...meta, events: [...meta.events, ...events], legend: { ...meta.legend, [p.id]: [...have, ...cards] }, chapter: Math.max(meta.chapter, reach) };
   if (newEnding) {
     next.runs = meta.runs + 1;
     next.best = Math.max(meta.best, s.score);

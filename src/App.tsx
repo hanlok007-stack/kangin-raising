@@ -1,14 +1,18 @@
 import { useMemo, useState } from 'react';
-import { packs } from './data';
-import { newGame, revive } from './engine/engine';
+import { chapterOf, chapters, LAST_CHAPTER, packs, reached } from './data';
+import { addSlot, newGame, revive, yearOf } from './engine/engine';
 import type { GameState, Pack } from './engine/types';
 import { validate } from './engine/validate';
-import { clearSave, loadCkpt, loadCustom, loadMeta, loadPick, loadSave, mergeMeta, saveCkpt, saveCustom, saveGame, savePick, type Custom, type Meta } from './store';
+import { adFree, interstitialDue, reviveNeedsAd } from './platform/ads';
+import { flags, setFlag } from './platform/flags';
+import { clearSave, loadCkpt, loadCustom, loadMeta, loadPick, loadSave, mergeMeta, resetAll, saveCkpt, saveCustom, saveGame, savePick, type Custom, type Meta } from './store';
+import { Admin, ChapterClear, PinGate } from './ui/admin';
 import { Editor } from './ui/editor';
 import { AdGate, Legend, PackSelect } from './ui/extra';
 import { Codex, Ending, Game, Intro, PerkSelect, Title } from './ui/screens';
 
-type View = 'title' | 'perk' | 'intro' | 'game' | 'codex' | 'editor' | 'legend' | 'pick';
+type View = 'title' | 'perk' | 'intro' | 'game' | 'codex' | 'editor' | 'legend' | 'pick' | 'pin' | 'admin';
+type Ad = 'revive' | 'slot' | 'inter';
 
 const first = packs[0].pack;
 
@@ -27,9 +31,11 @@ function usable(pack: Pack, s: GameState | null): GameState | null {
 
 export default function App() {
   const [meta, setMeta] = useState<Meta>(loadMeta);
+  const [, rerender] = useState(0);
+  const openTo = flags().allChapters ? 99 : meta.chapter;
   const [pickId, setPickId] = useState(() => {
     const id = loadPick();
-    return packs.some((x) => x.pack.id === id && (!x.locked || loadMeta().unlocked)) ? id! : first.id;
+    return packs.some((x) => x.pack.id === id && x.chapter <= (flags().allChapters ? 99 : loadMeta().chapter)) ? id! : first.id;
   });
   const [custom, setCustom] = useState<Custom | null>(loadCustom);
   const base = packs.find((x) => x.pack.id === pickId)!.pack;
@@ -38,18 +44,28 @@ export default function App() {
   const [view, setView] = useState<View>('title');
   const [back, setBack] = useState<View>('title');
   const [perk, setPerk] = useState<string | null>(null);
-  const [ad, setAd] = useState(false);
+  const [ad, setAd] = useState<Ad | null>(null);
+  const [clear, setClear] = useState<number | null>(null);
+  const [taps, setTaps] = useState(0);
   const [hint, setHint] = useState(true);
   const saved = (p: Pack) => {
     const sv = usable(p, loadSave());
     return sv && !sv.ending ? sv : null;
   };
   const [hasSave, setHasSave] = useState(() => !!saved(pack));
+  const chapter = s ? chapterOf(pack.id, yearOf(pack, s)) : 1;
 
-  // 모든 상태 변화가 지나가는 길목: 자동 저장 + 도감 갱신 + 턴 시작 지점 기억
+  // 모든 상태 변화가 지나가는 길목: 자동 저장 + 도감·챕터 갱신 + 턴 시작 지점 기억
   const update = (next: GameState) => {
-    setMeta(mergeMeta(meta, pack, next, !!s?.ending));
-    if (next.phase === 'plan' && !next.cur && (!s || s.turn !== next.turn || s.phase === 'ending')) saveCkpt(next);
+    const final = !!next.ending && !!pack.endings.find((e) => e.id === next.ending)?.final;
+    const nm = mergeMeta(meta, pack, next, !!s?.ending, reached(pack.id, yearOf(pack, next), final));
+    if (nm.chapter > meta.chapter) setClear(nm.chapter - 1);
+    setMeta(nm);
+    const newTurn = next.phase === 'plan' && !next.cur && (!s || s.turn !== next.turn || s.phase === 'ending');
+    if (newTurn) {
+      saveCkpt(next);
+      if (s && interstitialDue(chapterOf(pack.id, yearOf(pack, next)), next.turn)) setAd('inter');
+    }
     setS(next);
     if (next.ending) clearSave();
     else saveGame(next);
@@ -81,18 +97,50 @@ export default function App() {
     setView('title');
   };
 
-  // 되돌리기: 도중에 망한 판에서, 한 번만, 그 턴이 시작되던 순간으로
-  const ckpt = s?.ending && !s.revived && s.turn < 9999 ? usable(pack, loadCkpt()) : null;
-  const canRevive = !!ckpt && !ckpt.revived && !pack.endings.find((e) => e.id === s!.ending)?.final;
+  // 되돌리기: 도중에 망한 판을 그 턴이 시작되던 순간으로. 1장의 첫 번째만 무료, 그 뒤로는 광고.
+  const ckpt = s?.ending && !pack.endings.find((e) => e.id === s.ending)?.final ? usable(pack, loadCkpt()) : null;
+  const ckptChapter = ckpt ? chapterOf(pack.id, yearOf(pack, ckpt)) : 1;
+  const reviveFree = !!ckpt && !reviveNeedsAd(ckptChapter, ckpt.revived);
+  const doRevive = () => {
+    if (!ckpt) return;
+    const r = revive(ckpt);
+    saveCkpt(r);
+    saveGame(r);
+    setS(r);
+    setHasSave(true);
+  };
+  // 광고 보상. 광고 제거 패키지가 있으면 광고 자리를 건너뛰고 바로 준다
+  const reward = (kind: Ad) => {
+    if (kind === 'revive') doRevive();
+    if (kind === 'slot' && s) update(addSlot(pack, s));
+  };
+  const ask = (kind: Ad) => (adFree() ? reward(kind) : setAd(kind));
 
   let screen;
-  if (view === 'editor')
+  if (view === 'pin') screen = <PinGate onOk={() => setView('admin')} onBack={() => setView('title')} />;
+  else if (view === 'admin')
+    screen = (
+      <Admin
+        chapter={openTo}
+        onBack={() => setView('title')}
+        onEditor={() => setView('editor')}
+        onUnlockAll={() => {
+          setFlag('allChapters', true);
+          rerender((x) => x + 1);
+        }}
+        onReset={() => {
+          resetAll();
+          location.reload();
+        }}
+      />
+    );
+  else if (view === 'editor')
     screen = (
       <Editor
         base={first}
         pack={withCustom(first, custom)}
         custom={!!custom}
-        onBack={() => setView('title')}
+        onBack={() => setView('admin')}
         onSave={(c) => {
           saveCustom(c);
           setCustom(c);
@@ -104,8 +152,8 @@ export default function App() {
         }}
       />
     );
-  else if (view === 'legend') screen = <Legend packs={packs} meta={meta} onBack={() => setView(back)} />;
-  else if (view === 'pick') screen = <PackSelect packs={packs} meta={meta} current={pickId} onPick={choosePack} onBack={() => setView('title')} />;
+  else if (view === 'legend') screen = <Legend packs={packs} meta={meta} openTo={openTo} onBack={() => setView(back)} />;
+  else if (view === 'pick') screen = <PackSelect packs={packs} meta={meta} openTo={openTo} current={pickId} onPick={choosePack} onBack={() => setView('title')} />;
   else if (view === 'codex') screen = <Codex pack={pack} meta={meta} onBack={() => setView(back)} />;
   else if (view === 'perk')
     screen = (
@@ -122,9 +170,9 @@ export default function App() {
   else if (view === 'game' && s)
     screen =
       s.phase === 'ending' ? (
-        <Ending pack={pack} s={s} meta={meta} onAgain={newRun} onCodex={() => open('codex')} onRevive={canRevive ? () => setAd(true) : undefined} />
+        <Ending pack={pack} s={s} meta={meta} onAgain={newRun} onCodex={() => open('codex')} onRevive={ckpt ? () => (reviveFree ? doRevive() : ask('revive')) : undefined} reviveFree={reviveFree || adFree()} />
       ) : (
-        <Game pack={pack} s={s} update={update} onExit={() => setView('title')} />
+        <Game pack={pack} s={s} update={update} onExit={() => setView('title')} onSlot={() => ask('slot')} tag={`${chapter}장`} />
       );
   else
     screen = (
@@ -132,6 +180,7 @@ export default function App() {
         pack={pack}
         meta={meta}
         hasSave={hasSave}
+        chapterLine={`${Math.min(openTo, LAST_CHAPTER)}장까지 열림 · ${chapters[Math.min(openTo, LAST_CHAPTER) - 1].title}`}
         onNew={newRun}
         onContinue={() => {
           const sv = saved(pack);
@@ -143,7 +192,13 @@ export default function App() {
         onCodex={() => open('codex')}
         onLegend={() => open('legend')}
         onPick={() => setView('pick')}
-        onEditor={() => setView('editor')}
+        onSecret={() => {
+          // 로고를 일곱 번 누르면 관리자 확인으로
+          if (taps + 1 >= 7) {
+            setTaps(0);
+            setView('pin');
+          } else setTaps(taps + 1);
+        }}
       />
     );
 
@@ -155,17 +210,13 @@ export default function App() {
         </button>
       )}
       {screen}
+      {clear != null && <ChapterClear cleared={clear} onClose={() => setClear(null)} />}
       {ad && (
         <AdGate
           onDone={(ok) => {
-            setAd(false);
-            if (ok && ckpt) {
-              const r = revive(ckpt);
-              saveCkpt(r);
-              saveGame(r);
-              setS(r);
-              setHasSave(true);
-            }
+            const kind = ad;
+            setAd(null);
+            if (ok) reward(kind);
           }}
         />
       )}

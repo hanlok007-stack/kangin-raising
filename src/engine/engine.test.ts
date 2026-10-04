@@ -199,6 +199,24 @@ describe('엔진', () => {
     expect(s.skills).toEqual(expect.arrayContaining(['through', 'turn', 'curl']));
   });
 
+  it('기술을 많이 배워도 한 장면의 선택지는 슬롯 수만큼만, 기본기 하나는 꼭 나온다', () => {
+    for (let seed = 0; seed < 30; seed++) {
+      const base = newGame(pack, seed);
+      base.turn = 30;
+      base.stage = 'val';
+      base.skills = pack.moves.filter((m) => m.learn).map((m) => m.id);
+      let s = advance(pack, runPlan(pack, base, ['tech', 'pass', 'rest']));
+      while (s.phase === 'match') {
+        const opts = movesFor(pack, s);
+        if (opts.length) {
+          expect(opts.length).toBeLessThanOrEqual(s.slots);
+          expect(opts.some((o) => !o.move.learn)).toBe(true);
+          s = playMove(pack, s, opts[0].move.id);
+        } else s = advance(pack, s);
+      }
+    }
+  });
+
   it('경기는 기록지와 평점을 남긴다', () => {
     let s = advance(pack, runPlan(pack, newGame(pack, 9), ['tech', 'pass', 'rest']));
     expect(s.phase).toBe('match');

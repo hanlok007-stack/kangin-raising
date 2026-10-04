@@ -5,9 +5,9 @@ import { AD_SECONDS, rewarded } from '../platform/ads';
 import type { Meta } from '../store';
 import { ArtCard, Avatar } from './widgets';
 
-type Entry = { pack: Pack; face: string; locked: boolean };
+type Entry = { pack: Pack; chapter: number };
 
-export function PackSelect(props: { packs: Entry[]; meta: Meta; current: string; onPick: (id: string) => void; onBack: () => void }) {
+export function PackSelect(props: { packs: Entry[]; meta: Meta; openTo: number; current: string; onPick: (id: string) => void; onBack: () => void }) {
   const { meta } = props;
   return (
     <main className="stack">
@@ -16,17 +16,17 @@ export function PackSelect(props: { packs: Entry[]; meta: Meta; current: string;
       </button>
       <div className="card">
         <h2>누구를 키울까</h2>
-        <p className="sub">{meta.unlocked ? '선수를 바꾸면 진행 중이던 판은 지워집니다.' : '이강인을 프로 무대에 데뷔시키면 다른 선수가 열립니다.'}</p>
+        <p className="sub">장을 넘길 때마다 새 선수가 열립니다. 선수를 바꾸면 진행 중이던 판은 지워집니다.</p>
         <div className="list">
-          {props.packs.map(({ pack, locked }) => {
-            const open = !locked || meta.unlocked;
+          {props.packs.map(({ pack, chapter }) => {
+            const open = props.openTo >= chapter;
             const got = meta.legend[pack.id]?.length ?? 0;
             return (
               <button key={pack.id} className={pack.id === props.current ? 'choice pick on' : 'choice pick'} disabled={!open} onClick={() => props.onPick(pack.id)}>
                 <Avatar age={pack.startAge + 6} kit={pack.stages[pack.initStage].kit} mood="happy" />
                 <b>
                   {open ? pack.title : '🔒 ???'}
-                  <small>{open ? pack.tagline : '아직 잠겨 있다'}</small>
+                  <small>{open ? pack.tagline : `${chapter - 1}장을 마치면 열린다`}</small>
                   {open && (
                     <small>
                       {pack.startYear}년 만 {pack.startAge}세부터 · 레전드 카드 {got}/{pack.realRoute.length}
@@ -43,7 +43,7 @@ export function PackSelect(props: { packs: Entry[]; meta: Meta; current: string;
 }
 
 // 선수별 굵직한 순간(실제 커리어의 장면)을 카드로 모은다
-export function Legend(props: { packs: Entry[]; meta: Meta; onBack: () => void }) {
+export function Legend(props: { packs: Entry[]; meta: Meta; openTo: number; onBack: () => void }) {
   const { meta } = props;
   const total = props.packs.reduce((a, x) => a + x.pack.realRoute.length, 0);
   const have = Object.values(meta.legend).reduce((a, x) => a + x.length, 0);
@@ -56,15 +56,15 @@ export function Legend(props: { packs: Entry[]; meta: Meta; onBack: () => void }
         <h2>
           레전드 도감 <span>{have} / {total}</span>
         </h2>
-        <p className="sub">실제 역사에 남은 순간을 내 손으로 다시 만들면 카드가 열립니다.</p>
+        <p className="sub">원작의 명장면을 내 손으로 다시 만들면 카드가 열립니다.</p>
       </div>
-      {props.packs.map(({ pack, locked }) => {
-        const open = !locked || meta.unlocked;
+      {props.packs.map(({ pack, chapter }) => {
+        const open = props.openTo >= chapter;
         const got = meta.legend[pack.id] ?? [];
         return (
           <div key={pack.id} className="card">
             <h3>
-              {open ? pack.hero : '🔒 ???'} <span>{open ? `${got.length} / ${pack.realRoute.length}` : '이강인을 프로에 데뷔시키면 열린다'}</span>
+              {open ? pack.hero : '🔒 ???'} <span>{open ? `${got.length} / ${pack.realRoute.length}` : `${chapter - 1}장을 마치면 열린다`}</span>
             </h3>
             {open && (
               <div className="cards legend">

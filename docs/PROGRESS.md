@@ -1,53 +1,65 @@
 # 진행 상황
 
-「이강인 키우기」 — React + TypeScript + Vite. 실행·구조·배포는 [README](../README.md), 초기 기획은 [GDD-v0.2.md](GDD-v0.2.md).
+축구선수 육성 게임(패러디) — React + TypeScript + Vite. 실행·구조·배포는 [README](../README.md).
 
 - 저장소: https://github.com/hanlok007-stack/kangin-raising · 배포: https://hanlok007-stack.github.io/kangin-raising/
-- `main`에 푸시하면 GitHub Actions가 테스트 → 빌드 → Pages 배포. (공개 반영은 사용자 확인 후에만 푸시)
-- 실행: `npm install` → `npm run dev` (http://localhost:5180) · 검증: `npm test`, `npm run build`
+- `main`에 푸시하면 GitHub Actions가 테스트 → 빌드 → Pages 배포. **푸시·스토어 제출·결제·계정 생성은 사용자 확인 없이 하지 않는다.**
+- 실행: `npm install` → `npm run dev` (http://localhost:5180) · 검증: `npx tsc --noEmit`, `npm test`, `npm run build`
 
 ## 완료
 
-- v0.2 유소년 MVP · v0.3 프로 구간, 경기 기록지, 에이전시, 편집자 화면, 세계 탭, 배포
+v0.2 유소년 MVP · v0.3 프로 구간·경기 기록지·에이전시·편집자·세계 탭·배포 ·
+v0.4 반기/분기 가변 턴·은퇴·의욕/변덕·해외 유스·손흥민/박지성 팩·레전드 도감·PWA·가로 화면·광고 자리(되돌리기)
 
-## v0.4 체크리스트 (사용자 요청 2026-10-04 저녁) — 전부 완료
+## v0.5 체크리스트 (사용자 요청 2026-10-04 밤)
 
-- [x] 1. 엔진: 가변 턴 길이(`calendar`: 만 6~17세 반기, 18~29세 분기, 30세~ 반기), 은퇴까지, 반기 턴은 이벤트 2개
-- [x] 2. 이강인 후반 커리어 이벤트(2024~2036)와 은퇴 엔딩, 노쇠화, 은퇴 선언
-- [x] 3. 의욕(joy)·언해피 시스템과 변덕 이벤트(태권도·아이돌·야구·요리·의대·훈련 거부) + 엔딩 6종
-- [x] 4. 해외 유스 분기(네덜란드·독일·카탈루냐·FIFA 징계) + 세계선 이탈률에 연표 반영, "실제 선택" 표시 제거
-- [x] 5. 가로 화면 레이아웃, PWA(manifest·아이콘·서비스 워커)
-- [x] 6. 앱 밑작업: Capacitor 설정, 광고 모듈(`src/platform/ads.ts`), 광고 보고 되돌리기
-- [x] 7. 손흥민·박지성 팩(`src/data/son.ts`, `park.ts`, 공용 콘텐츠 파생 `derive.ts`), 선수 선택 화면, 잠금 해제
-- [x] 8. 레전드 도감(선수별 굵직한 순간 카드 39장)
-- [x] 9. 테스트 22개 통과, 브라우저 확인, 커밋
+위에서부터 순서대로. 항목을 끝낼 때마다 검증 → 이 파일 갱신 → `git commit` (푸시는 하지 않는다).
 
-## 현재 콘텐츠
+- [ ] 1. **패러디 표기** (`src/data/parody.ts`, `src/data/index.ts`에서 모든 팩에 적용)
+  - 실존 인물·구단·학교·방송 이름을 살짝 비튼 표기로 바꾼다. 데이터 파일은 원래 표기로 두고, 팩을 내보낼 때 치환표로 한꺼번에 바꾼다.
+  - "실제 역사 / 실제 커리어 / 실제와 같은 선택 / REAL ROUTE" → "원작 / 원작 연표 / 원작과 같은 선택 / ORIGINAL ROUTE".
+  - 화면 코드(`src/ui/*.tsx`)에 박힌 이름·"실제" 문구도 `pack.hero`와 "원작"으로. `index.html` 제목과 `public/manifest.webmanifest` 이름도.
+  - 고지문: "이 게임의 인물·구단·대회는 모두 패러디이며 실존 인물·단체와 무관합니다."
+- [ ] 2. **초기화면에서 편집자 제거 + 관리자 설정** (`src/platform/admin.ts`, `src/ui/admin.tsx`)
+  - 타이틀의 "편집자 화면" 버튼을 없앤다. 로고를 7번 누르면 PIN 입력 → SHA-256 해시가 맞으면 관리자 화면.
+  - 관리자 화면: 편집자 열기, 광고 제거 권한 켜고 끄기(테스트), 챕터 전부 열기, 웹에서도 전면 광고 자리 보기, 저장 데이터 초기화.
+  - PIN 바꾸기: `node scripts/set-pin.cjs <새 PIN>` 이 `ADMIN_HASH`를 다시 쓴다.
+- [ ] 3. **경기 선택지 슬롯** (`engine.ts` startMatch/movesFor, `types.ts`)
+  - 배운 기술이 많아도 한 장면에 나오는 선택지는 `s.slots`개(기본 4, 최대 6)만 무작위로. 기본기 하나는 반드시 포함.
+  - 제시 목록은 경기 시작 때 정해 `match.offers`에 저장한다(다시 그려도 바뀌지 않게).
+  - 슬롯 +1: 이벤트 보상(`Outcome.slot`) 또는 광고 보기(기록 탭의 버튼, `addSlot`).
+- [ ] 4. **챕터 진행** (`src/data/index.ts`의 campaign, `store.ts`의 `meta.chapter`)
+  - 1장 슛돌이 시절(이강인, 2011년 스페인행 결정까지) → 2장 유럽 사가(이강인, 2023년까지) → 3장 손흥민 → 4장 박지성.
+  - 1장을 넘기면 "CHAPTER CLEAR" 화면 + 광고 제거 패키지 안내, 같은 판을 그대로 이어서 2장.
+  - 손흥민은 2장을 마쳐야(2024년 도달 또는 은퇴 엔딩), 박지성은 3장을 마쳐야 열린다. `meta.unlocked`는 `meta.chapter`로 대체.
+- [ ] 5. **광고 정책과 결제 준비** (`src/platform/ads.ts`, `src/platform/billing.ts`)
+  - 되돌리기는 횟수 제한 없이, 매번 광고 한 번. 1장에서는 첫 번째 되돌리기가 무료.
+  - 전면 광고 자리: 1장 없음, 2장 14턴마다, 3장 10턴마다, 4장 8턴마다. 웹에서는 띄우지 않고(관리자 설정으로 미리보기), 앱에서만.
+  - 상품 `no_ads` "광고 완전 무료 패키지" 9,900원: 가지고 있으면 모든 광고를 건너뛰고 보상만 받는다.
+  - 웹에서는 구매 불가 안내만. 앱에서는 Google Play 결제 플러그인을 붙일 자리(`purchase()`)만 만들어 둔다. **실제 결제 코드는 Play Console 상품 등록 후에.**
+- [ ] 6. **광고를 부르는 위기 이벤트** (`src/data/kangin/more.ts`에 추가, 삽화는 `art.ts`)
+  - 탈진 1회차는 구급차를 타고 가서 봐준다(지금의 f_collapse1 문구 보강), 2회차는 엔딩 → 되돌리기.
+  - 연애: 첫사랑 고백 → 응원 덕에 오히려 잘 풀리는 길 / 한눈팔다 축구를 그만두는 길(엔딩 `love`). 다른 선수 팩에는 연애 이벤트를 넣지 않는다.
+  - 최저학력 미달, 새벽 휴대폰, 피로골절, 아빠의 축구 금지령, 체지방 측정 등 8개 이상.
+- [ ] 7. **안드로이드 앱** (Capacitor)
+  - 도구 위치: `C:\Users\eetlk\android-dev\` (JDK, Android SDK). 환경변수는 명령마다 `JAVA_HOME`, `ANDROID_HOME`으로 넘긴다.
+  - `npm i -D @capacitor/cli @capacitor/core @capacitor/android` → `npx cap add android` → `npm run build && npx cap sync android` → `android\gradlew.bat assembleDebug` (그다음 `bundleRelease`).
+  - 가로 고정(`android:screenOrientation="sensorLandscape"`), 앱 이름·아이콘 반영.
+  - 네이티브 실행 파일이 보안 정책에 막히면 우회하지 말고 무엇이 막혔는지 기록한다.
+- [ ] 8. 테스트 갱신, 브라우저 확인, 문서(README) 갱신
 
-| | 이강인 | 손흥민 | 박지성 |
-|---|---|---|---|
-| 기간 | 2007~2036 (만 6~35세) | 2002~2027 (만 10~35세) | 1990~2016 (만 9~35세) |
-| 턴 | 84 | 76 | 78 |
-| 이벤트 | 170 | 103 | 102 |
-| 엔딩 | 37 | 26 | 27 |
-| 레전드 카드 | 13 | 13 | 13 |
+## 사용자만 할 수 있는 일 (대신 하지 않는다)
 
-손흥민·박지성 팩은 고유 스토리 20여 개 + 이강인 팩에서 물려받은 공용 이벤트(일상·위기·변덕·행동 반복)로 이뤄진다. 연애 이벤트는 물려받지 않는다.
+- Google Play 개발자 계정 만들기(등록비 결제, 본인 확인), 스토어 최종 제출 버튼, 결제 프로필·세금 정보.
+- 서명 키 비밀번호 정하기와 보관.
+- 광고 SDK(AdMob) 계정과 앱 ID 발급.
 
 ## 알아둘 것
 
 - 이 PC는 Windows 애플리케이션 제어 정책이 서명되지 않은 네이티브 바이너리(.node/.exe)를 차단한다.
   Vite 7 + `package.json` `overrides`(rollup → `@rollup/wasm-node`, esbuild → `esbuild-wasm`) 구성을 바꾸지 말 것.
 - 개발 서버 포트 5180. `gh` CLI 없음.
-- 밸런스 손잡이: `src/data/kangin/index.ts`의 `gainScale`(성장), `matchHard`(경기 난이도), `calendar`(시기별 턴 길이).
-- 콘텐츠 원칙: 주인공 외 인물은 가상이거나 이름 없이 역할로만 등장한다. 실존 인물의 사생활·논란은 쓰지 않는다.
-  실제 여정의 구단은 실명, 가상 루트의 구단은 가상 이름. 병역 제도는 사실대로.
-- 2026년 여름 이후의 이벤트(월드컵 등)는 지어낸 미래다.
-- 앱 출시: Android Studio가 있는 PC에서 `npm run app:add` → `npm run app:sync`. 광고는 `src/platform/ads.ts`만 바꾸면 된다(지금은 3초 대기하는 자리 표시).
-
-## 다음 단계 후보
-
-1. 직접 플레이한 피드백으로 밸런스 조정 (손흥민·박지성 팩은 자동 플레이로만 검증됨)
-2. 손흥민·박지성 고유 이벤트 보강, 세 선수가 서로의 세계선에 등장하는 이벤트
-3. 효과음·진동, 스토어 등록용 아이콘·스크린샷
-4. 실제 광고 SDK 연결, 결제(광고 제거)
+- 파일을 고칠 때 가끔 `UNKNOWN: unknown error, open` 이 난다(다른 프로세스가 잠깐 잡고 있음). 2초 뒤 다시 하면 된다.
+- 구조: 엔진 `src/engine`(순수 함수), 데이터 `src/data`(이강인 `kangin/`, 손흥민 `son.ts`, 박지성 `park.ts`, 공용 파생 `derive.ts`), 화면 `src/ui`, 플랫폼 `src/platform`.
+- 밸런스 손잡이: `src/data/kangin/index.ts`의 `gainScale`, `matchHard`, `calendar`.
+- 콘텐츠 원칙: 주인공 외 인물은 가상이거나 이름 없이 역할로만. 사생활·논란은 쓰지 않는다. 병역 제도는 사실대로. 2026년 여름 이후는 지어낸 미래.

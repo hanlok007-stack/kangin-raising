@@ -197,3 +197,24 @@
     border-radius: 0;
   }
 }
+
+/* 챕터 클리어와 상점 안내 */
+.clear {
+  width: min(360px, 100%);
+}
+.shop {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px;
+  background: #fff6cc;
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+}
+.shop small {
+  color: var(--muted);
+}
+.logo {
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+}

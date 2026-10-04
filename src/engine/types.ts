@@ -26,6 +26,7 @@ export interface Outcome {
   stage?: string; // 스테이지 전환
   pos?: string; // 포지션 확정
   skill?: string; // 기술 습득
+  slot?: number; // 경기 선택지 슬롯 추가
   injure?: number; // 부상 턴 수
   goal?: number;
   assist?: number;
@@ -207,6 +208,7 @@ export interface Pack {
   growth: [number, number][]; // [나이, 배율] 선형 보간
   gainScale: number; // 훈련 성장량 전체 배율 (밸런스 손잡이)
   matchHard: number; // 경기 판정 난이도 보정 (밸런스 손잡이)
+  moveSlots: [number, number]; // 경기 한 장면에 나오는 선택지 수 [기본, 최대]
   aptitude: Fx; // 스탯별 성장 적성, 비스탯은 증가량 배율
   traits: Fx;
   baseWeights: Fx;
@@ -303,6 +305,7 @@ export interface MatchState {
   opp: string;
   sub: boolean;
   sits: string[];
+  offers: string[][]; // 장면마다 이번에 고를 수 있는 기술 (슬롯 수만큼 무작위)
   plays: Play[];
   shown: number; // 결과까지 확인한 장면 수
   sheet?: Sheet;
@@ -335,6 +338,7 @@ export interface GameState {
   flags: Record<string, string>; // 플래그 → 생긴 계기("2010년 「…」")
   counts: Fx; // 행동 id → 한 횟수
   skills: string[];
+  slots: number; // 경기 한 장면에 나오는 선택지 수
   cool: Fx; // 에이전시 행동 id → 다시 쓸 수 있는 턴
   agencyTurn: number; // 마지막으로 에이전시 행동을 한 턴
   seen: string[];

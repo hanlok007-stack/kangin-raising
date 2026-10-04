@@ -40,11 +40,11 @@ const posName = (p: Pack, s: GameState) => (s.pos ? p.positions[s.pos].name : '�
 const endAge = (p: Pack) => p.endAge;
 const rateTone = (r: number) => (r >= 8 ? 'top' : r >= 7 ? 'hi' : r >= 6 ? 'mid' : 'lo');
 
-export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: () => void; onContinue: () => void; onCodex: () => void; onEditor: () => void; onLegend: () => void; onPick: () => void }) {
+export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: () => void; onContinue: () => void; onCodex: () => void; onLegend: () => void; onPick: () => void; onSecret: () => void; chapterLine: string }) {
   const { pack, meta, hasSave } = props;
   return (
     <main className="title">
-      <div className="card logo">
+      <div className="card logo" onClick={props.onSecret}>
         <Avatar age={pack.startAge} kit={pack.stages[pack.initStage].kit} mood="happy" />
         <h1>{pack.title}</h1>
         <p className="tag">{pack.tagline}</p>
@@ -69,10 +69,7 @@ export function Title(props: { pack: Pack; meta: Meta; hasSave: boolean; onNew: 
           <small>굵직한 순간 {Object.values(meta.legend).reduce((a, x) => a + x.length, 0)}장 수집</small>
         </button>
         <button className="btn ghost slim" onClick={props.onPick}>
-          {meta.unlocked ? '👥 선수 바꾸기' : '🔒 다른 선수'} <small>{meta.unlocked ? '손흥민 · 박지성' : '이강인을 프로에 데뷔시키면 열린다'}</small>
-        </button>
-        <button className="btn ghost slim" onClick={props.onEditor}>
-          🛠 편집자 화면 <small>이벤트·카테고리 수정</small>
+          👥 챕터 · 선수 <small>{props.chapterLine}</small>
         </button>
       </div>
       {hasSave && <p className="fine">새 게임을 시작하면 진행 중인 기록은 지워집니다.</p>}
@@ -528,7 +525,7 @@ function WorldView({ pack, s }: { pack: Pack; s: GameState }) {
           <Bar value={w.ovr} tone="time" />
         </label>
         <label>
-          같은 나이의 실제 이강인 (추정) <b>{Math.round(w.real)}</b>
+          원작 속 같은 나이의 {pack.hero} <b>{Math.round(w.real)}</b>
           <Bar value={w.real} tone="stamina" />
         </label>
         <label>
@@ -599,7 +596,7 @@ function Timeline({ pack, s }: { pack: Pack; s: GameState }) {
           <small>{dateOf(pack, h.turn)}</small>
           <b>「{h.title}」</b>
           <span>{h.label}</span>
-          <em>{h.real ? '실제와 같은 선택' : '다른 세계선'}</em>
+          <em>{h.real ? '원작과 같은 선택' : '다른 세계선'}</em>
         </li>
       ))}
     </ol>
@@ -638,7 +635,7 @@ function Skills({ pack, s }: { pack: Pack; s: GameState }) {
   );
 }
 
-function Record({ pack, s }: { pack: Pack; s: GameState }) {
+function Record({ pack, s, onSlot }: { pack: Pack; s: GameState; onSlot?: () => void }) {
   const avg = avgRating(s);
   return (
     <div className="stack">
@@ -689,8 +686,16 @@ function Record({ pack, s }: { pack: Pack; s: GameState }) {
         기술 <span>{s.skills.length} / {pack.moves.filter((m) => m.learn).length} · 같은 훈련을 반복하면 열린다</span>
       </h3>
       <Skills pack={pack} s={s} />
+      <p className="fine">
+        경기 한 장면에 나오는 선택지는 {s.slots}개 (최대 {pack.moveSlots[1]}개). 배운 기술 중에서 무작위로 나온다.
+      </p>
+      {onSlot && s.slots < pack.moveSlots[1] && (
+        <button className="btn" onClick={onSlot}>
+          📺 광고 보고 선택지 +1
+        </button>
+      )}
       <h3>
-        실제 커리어 연표 <span>✔ 이 세계선에서도 일어난 일</span>
+        원작 연표 <span>✔ 이 세계선에서도 일어난 일</span>
       </h3>
       <RealRoute pack={pack} s={s} />
       <h3>
@@ -710,7 +715,7 @@ const TABS: [Tab, string][] = [
   ['record', '기록'],
 ];
 
-export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: () => void }) {
+export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: () => void; onSlot?: () => void; tag?: string }) {
   const { pack, s, update } = props;
   const [tab, setTab] = useState<Tab>('main');
   const panel = useRef<HTMLElement>(null);
@@ -731,7 +736,9 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
           <b>
             만 {age}세 · {partName(slotAt(pack, s.turn))}
           </b>
-          <small>{yearOf(pack, s)}년</small>
+          <small>
+            {yearOf(pack, s)}년{props.tag && ` · ${props.tag}`}
+          </small>
         </div>
         <div className="progress">
           <Bar value={(100 * s.turn) / totalTurns(pack)} tone="time" />
@@ -762,13 +769,13 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
         {tab === 'agency' && <Agency pack={pack} s={s} update={update} />}
         {tab === 'world' && <WorldView pack={pack} s={s} />}
         {tab === 'feed' && <Feed pack={pack} s={s} />}
-        {tab === 'record' && <Record pack={pack} s={s} />}
+        {tab === 'record' && <Record pack={pack} s={s} onSlot={props.onSlot} />}
       </section>
     </main>
   );
 }
 
-export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: () => void; onCodex: () => void; onRevive?: () => void }) {
+export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: () => void; onCodex: () => void; onRevive?: () => void; reviveFree?: boolean }) {
   const { pack, s, meta } = props;
   const e = pack.endings.find((x) => x.id === s.ending)!;
   const w = standing(pack, s);
@@ -783,7 +790,7 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
     <main className="stack ending">
       <div className={`card endcard tier-${e.tier}`}>
         <p className="endtag">
-          ENDING · {e.tier}등급{e.real && ' · REAL ROUTE'}
+          ENDING · {e.tier}등급{e.real && ' · ORIGINAL ROUTE'}
         </p>
         <h1>{e.title}</h1>
         <Avatar age={age} kit={pack.stages[s.stage].kit} mood={e.tier === 'D' ? 'hurt' : e.tier === 'C' ? 'tired' : 'happy'} />
@@ -826,7 +833,7 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
       </div>
       <div className="card">
         <h3>
-          실제 커리어 연표 <span>{hit} / {pack.realRoute.length} 일치</span>
+          원작 연표 <span>{hit} / {pack.realRoute.length} 일치</span>
         </h3>
         <RealRoute pack={pack} s={s} />
       </div>
@@ -839,9 +846,9 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
       {props.onRevive && (
         <div className="card revive">
           <h3>여기서 끝내기엔 아깝다</h3>
-          <p className="sub">이번 턴이 시작되던 순간으로 돌아가 다시 고를 수 있습니다. 한 판에 한 번만.</p>
+          <p className="sub">이번 턴이 시작되던 순간으로 돌아가 다시 고를 수 있습니다.</p>
           <button className="btn" onClick={props.onRevive}>
-            📺 광고 보고 되돌리기
+            {props.reviveFree ? '🚑 이번에는 그냥 봐준다 — 되돌리기' : '📺 광고 보고 되돌리기'}
           </button>
         </div>
       )}
@@ -929,7 +936,7 @@ export function Codex(props: { pack: Pack; meta: Meta; onBack: () => void }) {
               const has = meta.endings.includes(e.id);
               return (
                 <div key={e.id} className={has ? `row tier-${e.tier}` : 'row unknown'}>
-                  <b>{has ? `[${e.tier}] ${e.title}${e.real ? ' · REAL ROUTE' : ''}` : `[${e.tier}] ???`}</b>
+                  <b>{has ? `[${e.tier}] ${e.title}${e.real ? ' · ORIGINAL ROUTE' : ''}` : `[${e.tier}] ???`}</b>
                   <p>{has ? e.text : `힌트: ${e.hint}`}</p>
                 </div>
               );

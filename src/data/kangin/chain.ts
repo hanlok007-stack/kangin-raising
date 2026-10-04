@@ -433,7 +433,7 @@ export const chain: GameEvent[] = [
       {
         label: '손을 들고 의견을 말한다',
         check: { stats: { iq: 1 }, rel: -2 },
-        ok: { text: '감독이 자석을 옮겼다. "…네 말이 맞다." 그 경기는 3:0으로 이겼다.', fx: { coach: 10, iq: 1.5 }, flag: ['coach_brain'] },
+        ok: { text: '감독이 자석을 옮겼다. "…네 말이 맞다." 그 경기는 3:0으로 이겼다. 경기를 읽는 눈이 트였다. (선택지 슬롯 +1)', fx: { coach: 10, iq: 1.5 }, flag: ['coach_brain'], slot: 1 },
         fail: { text: '"앉아." 감독의 한마디에 라커룸이 조용해졌다.', fx: { coach: -4, stress: 4 } },
       },
       { label: '노트에만 적어 둔다', ok: { text: '경기는 내 예상대로 흘러갔다. 다음엔 말해야겠다.', fx: { iq: 1 } } },
@@ -492,7 +492,7 @@ export const chain: GameEvent[] = [
     when: { min: { n_lesson: 6 } },
     title: '코치의 비밀 노트',
     text: '개인 코치가 낡은 노트를 꺼낸다. "현역 때 아무한테도 안 보여 준 거다. 넌 봐도 된다."',
-    choices: [{ label: '밤새 읽는다', ok: { text: '공을 차기 전 디딤발의 각도. 그 한 줄이 킥을 바꿨다.', fx: { sho: 1.5, pas: 1.5, iq: 1 } } }],
+    choices: [{ label: '밤새 읽는다', ok: { text: '공을 차기 전 디딤발의 각도. 그 한 줄이 킥을 바꿨다. 경기 중에 떠오르는 수가 하나 늘었다. (선택지 슬롯 +1)', fx: { sho: 1.5, pas: 1.5, iq: 1 }, slot: 1 } }],
   },
   {
     id: 'c_bill',

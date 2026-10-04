@@ -155,6 +155,7 @@ export function newGame(p: Pack, seed: number, perkId: string | null = null): Ga
     flags: {},
     counts: {},
     skills: [],
+    slots: p.moveSlots[0],
     cool: {},
     agencyTurn: -1,
     seen: [],
@@ -280,8 +281,30 @@ function startMatch(p: Pack, s: GameState): GameState {
     const b = last.length && rand(s) < 0.4 ? pick(s, last) : pick(s, rest.length ? rest : open);
     sits = [a.id, b.id];
   }
-  s.match = { opp: pick(s, p.stages[s.stage].opps), sub, sits, plays: [], shown: 0 };
+  s.match = { opp: pick(s, p.stages[s.stage].opps), sub, sits, offers: sits.map((id) => offer(p, s, sitById(p, id))), plays: [], shown: 0 };
   s.phase = 'match';
+  return s;
+}
+
+// 이 장면에서 쓸 수 있는 기술: 기본기 + 배운 기술
+const usable = (p: Pack, s: GameState, sit: Situation) =>
+  p.moves.filter((m) => !m.passive && sit.kinds.includes(m.kind) && (!m.learn || s.skills.includes(m.id)) && (!m.only || m.only.some((t) => sit.tags?.includes(t))));
+
+// 그중 슬롯 수만큼만 무작위로 내놓는다. 기본기 하나는 꼭 낀다.
+function offer(p: Pack, s: GameState, sit: Situation): string[] {
+  const all = usable(p, s, sit);
+  if (all.length <= s.slots) return all.map((m) => m.id);
+  const bag = [...all];
+  const out: Move[] = [];
+  while (out.length < s.slots) out.push(bag.splice(Math.floor(rand(s) * bag.length), 1)[0]);
+  if (out.every((m) => m.learn)) out[out.length - 1] = pick(s, all.filter((m) => !m.learn));
+  return out.map((m) => m.id);
+}
+
+// 선택지 슬롯을 하나 늘린다 (광고 보상)
+export function addSlot(p: Pack, s0: GameState): GameState {
+  const s = clone(s0);
+  s.slots = Math.min(p.moveSlots[1], s.slots + 1);
   return s;
 }
 
@@ -308,19 +331,12 @@ export function currentSit(p: Pack, s: GameState): Situation | null {
   return sitById(p, mt.sits[mt.plays.length]);
 }
 
-// 이 장면에서 쓸 수 있는 기술: 기본기 + 배운 기술
+// 이번 장면에 나온 선택지와 성공률
 export function movesFor(p: Pack, s: GameState): { move: Move; p: number }[] {
   const sit = currentSit(p, s);
   if (!sit) return [];
-  return p.moves
-    .filter(
-      (m) =>
-        !m.passive &&
-        sit.kinds.includes(m.kind) &&
-        (!m.learn || s.skills.includes(m.id)) &&
-        (!m.only || m.only.some((t) => sit.tags?.includes(t))),
-    )
-    .map((m) => ({ move: m, p: moveChance(p, s, sit, m) }));
+  const ids = s.match!.offers[s.match!.plays.length];
+  return p.moves.filter((m) => ids.includes(m.id)).map((m) => ({ move: m, p: moveChance(p, s, sit, m) }));
 }
 
 export function playMove(p: Pack, s0: GameState, id: string): GameState {
@@ -560,6 +576,7 @@ export function choose(p: Pack, s0: GameState, idx: number): GameState {
   if (o.stage) s.stage = o.stage;
   if (o.pos) s.pos = o.pos;
   if (o.skill && !s.skills.includes(o.skill)) s.skills.push(o.skill);
+  if (o.slot) s.slots = Math.min(p.moveSlots[1], s.slots + o.slot);
   if (o.injure) s.injured = Math.max(s.injured, o.injure);
   if (o.next) s.queue.push(o.next);
   if (o.goal) s.rec.goals += o.goal;
