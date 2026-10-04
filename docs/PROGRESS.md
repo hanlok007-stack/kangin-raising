@@ -41,7 +41,19 @@ v0.4 반기/분기 가변 턴·은퇴·의욕/변덕·해외 유스·손흥민/�
   - 탈진 1회차는 구급차를 타고 가서 봐준다(지금의 f_collapse1 문구 보강), 2회차는 엔딩 → 되돌리기.
   - 연애: 첫사랑 고백 → 응원 덕에 오히려 잘 풀리는 길 / 한눈팔다 축구를 그만두는 길(엔딩 `love`). 다른 선수 팩에는 연애 이벤트를 넣지 않는다.
   - 최저학력 미달, 새벽 휴대폰, 피로골절, 아빠의 축구 금지령, 체지방 측정 등 8개 이상.
-- [ ] 7. **안드로이드 앱** (Capacitor)
+- [ ] 7. **안드로이드 앱** (Capacitor) — 진행 중
+  - 끝난 것: Capacitor 설치, `android/` 프로젝트 생성(compileSdk 36, Gradle 8.14.3), 가로 고정, 런처 아이콘(`npm run icons`).
+  - 사용자가 2026-10-04에 승인한 것: JDK·Android SDK·Gradle 내려받기, Android SDK 라이선스 동의.
+  - 내려받기는 `C:\Users\eetlk\android-dev\`에 진행 중이었다(회선이 느림, 초당 200KB 안팎). `jdk.zip`(약 200MB)과 `cmdline.zip`(약 150MB)이 다 받아지면 각각 `jdk\`와 `sdk\cmdline-tools\latest\`로 풀려 있어야 한다. 없거나 깨졌으면 다시 받는다:
+    - JDK 21: `https://api.adoptium.net/v3/binary/latest/21/ga/windows/x64/jdk/hotspot/normal/eclipse`
+    - 명령줄 도구: `https://dl.google.com/android/repository/commandlinetools-win-11076708_latest.zip`
+  - 남은 순서 (PowerShell, 매번 `$env:JAVA_HOME="C:\Users\eetlk\android-dev\jdk"; $env:ANDROID_HOME="C:\Users\eetlk\android-dev\sdk"`):
+    1. `"y`n"*20 | & "$env:ANDROID_HOME\cmdline-tools\latest\bin\sdkmanager.bat" --licenses`
+    2. `sdkmanager.bat "platform-tools" "platforms;android-36" "build-tools;36.0.0"`
+    3. 프로젝트 폴더에서 `npm run build; npx cap sync android`
+    4. `android\local.properties`에 `sdk.dir=C\:\\Users\\eetlk\\android-dev\\sdk` 기록 후 `cd android; .\gradlew.bat assembleDebug` → `android\app\build\outputs\apk\debug\app-debug.apk`
+    5. 되면 `.\gradlew.bat bundleRelease` (서명 키는 사용자가 비밀번호를 정해야 하므로 만들지 않는다. 서명되지 않은 AAB까지만.)
+  - java.exe, aapt2.exe 등이 "Application Control policy"에 막히면 거기서 멈추고 무엇이 막혔는지 이 파일에 적는다.
   - 도구 위치: `C:\Users\eetlk\android-dev\` (JDK, Android SDK). 환경변수는 명령마다 `JAVA_HOME`, `ANDROID_HOME`으로 넘긴다.
   - `npm i -D @capacitor/cli @capacitor/core @capacitor/android` → `npx cap add android` → `npm run build && npx cap sync android` → `android\gradlew.bat assembleDebug` (그다음 `bundleRelease`).
   - 가로 고정(`android:screenOrientation="sensorLandscape"`), 앱 이름·아이콘 반영.

@@ -20,7 +20,8 @@ function chunk(type, data) {
   return Buffer.concat([len, body, crc]);
 }
 
-function draw(size) {
+// R: 공의 반지름 비율, bg: 배경을 칠할지 (적응형 아이콘의 전경은 투명 배경에 작게)
+function draw(size, R0 = 0.34, bg = true) {
   const px = Buffer.alloc(size * (size * 4 + 1));
   const c = size / 2;
   const hex = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
@@ -37,8 +38,8 @@ function draw(size) {
     px[y * (size * 4 + 1)] = 0;
     for (let x = 0; x < size; x++) {
       const stripe = Math.floor((x / size) * 6) % 2 ? '#2e9e4f' : '#289047';
-      let col = hex(stripe);
-      const R = size * 0.34;
+      let col = bg ? hex(stripe) : null;
+      const R = size * R0;
       if (inCircle(x, y, c + size * 0.03, c + size * 0.03, R + size * 0.035)) col = hex('#1d1d1b'); // 그림자
       if (inCircle(x, y, c, c, R + size * 0.03)) col = hex('#1d1d1b'); // 외곽선
       if (inCircle(x, y, c, c, R)) col = hex('#fffaf0');
@@ -50,12 +51,14 @@ function draw(size) {
         if (penta(x, y, qx, qy, R * 0.3) && inCircle(x, y, c, c, R)) col = hex('#1d1d1b');
       }
       // 왼쪽 위의 주황색 띠: 왼발의 색
-      if (x + y < size * 0.34) col = hex('#ff5a36');
+      if (bg && x + y < size * 0.34) col = hex('#ff5a36');
       const o = y * (size * 4 + 1) + 1 + x * 4;
-      px[o] = col[0];
-      px[o + 1] = col[1];
-      px[o + 2] = col[2];
-      px[o + 3] = 255;
+      if (col) {
+        px[o] = col[0];
+        px[o + 1] = col[1];
+        px[o + 2] = col[2];
+        px[o + 3] = 255;
+      }
     }
   }
   const head = Buffer.alloc(13);
@@ -70,4 +73,20 @@ fs.mkdirSync('public', { recursive: true });
 for (const size of [192, 512]) {
   fs.writeFileSync(`public/icon-${size}.png`, draw(size));
   console.log(`public/icon-${size}.png`);
+}
+
+// 안드로이드 프로젝트가 있으면 런처 아이콘도 덮어쓴다
+const res = 'android/app/src/main/res';
+if (fs.existsSync(res)) {
+  const dens = { mdpi: 1, hdpi: 1.5, xhdpi: 2, xxhdpi: 3, xxxhdpi: 4 };
+  for (const [d, k] of Object.entries(dens)) {
+    const dir = `${res}/mipmap-${d}`;
+    fs.mkdirSync(dir, { recursive: true });
+    fs.writeFileSync(`${dir}/ic_launcher.png`, draw(48 * k));
+    fs.writeFileSync(`${dir}/ic_launcher_round.png`, draw(48 * k));
+    fs.writeFileSync(`${dir}/ic_launcher_foreground.png`, draw(108 * k, 0.21, false));
+  }
+  const bgFile = `${res}/values/ic_launcher_background.xml`;
+  fs.writeFileSync(bgFile, '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#2E9E4F</color>\n</resources>\n');
+  console.log('android launcher icons');
 }

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">이강잉 키우기</string>
+    <string name="title_activity_main">이강잉 키우기</string>
+    <string name="package_name">io.github.hanlok007stack.kangin</string>
+    <string name="custom_url_scheme">io.github.hanlok007stack.kangin</string>
+</resources>
