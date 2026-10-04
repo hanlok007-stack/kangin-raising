@@ -41,7 +41,11 @@ v0.4 반기/분기 가변 턴·은퇴·의욕/변덕·해외 유스·손흥민/�
   - 탈진 1회차는 구급차를 타고 가서 봐준다(지금의 f_collapse1 문구 보강), 2회차는 엔딩 → 되돌리기.
   - 연애: 첫사랑 고백 → 응원 덕에 오히려 잘 풀리는 길 / 한눈팔다 축구를 그만두는 길(엔딩 `love`). 다른 선수 팩에는 연애 이벤트를 넣지 않는다.
   - 최저학력 미달, 새벽 휴대폰, 피로골절, 아빠의 축구 금지령, 체지방 측정 등 8개 이상.
-- [ ] 7. **안드로이드 앱** (Capacitor) — 진행 중
+- [x] 7. **안드로이드 앱** (Capacitor) — 빌드 성공 (2026-10-04 22시)
+  - 결과물: `C:\Users\eetlk\android-dev\kangin-debug.apk`(4.3MB, 휴대폰에 바로 설치해 볼 수 있음), `kangin-release-unsigned.aab`(3.1MB, 서명 전).
+  - 다시 빌드: Git Bash에서 `export JAVA_HOME="C:/Users/eetlk/android-dev/jdk" ANDROID_HOME="C:/Users/eetlk/android-dev/sdk"` → 프로젝트에서 `npm run build && npx cap sync android` → `cd android && ./gradlew.bat assembleDebug --no-daemon` (또는 `bundleRelease`). 보안 정책에 막힌 실행 파일은 없었다.
+  - 남은 것(사용자 몫): 서명 키 만들기(비밀번호를 사용자가 정해야 함)와 AAB 서명, Play 개발자 계정, 스토어 제출. 실제 휴대폰에서의 실행 확인도 아직 못 했다.
+  - 아래는 이 항목을 진행하던 중의 기록이다.
   - 끝난 것: Capacitor 설치, `android/` 프로젝트 생성(compileSdk 36, Gradle 8.14.3), 가로 고정, 런처 아이콘(`npm run icons`).
   - 사용자가 2026-10-04에 승인한 것: JDK·Android SDK·Gradle 내려받기, Android SDK 라이선스 동의.
   - 내려받기는 `C:\Users\eetlk\android-dev\`에 진행 중이었다(회선이 느림, 초당 200KB 안팎). `jdk.zip`(약 200MB)과 `cmdline.zip`(약 150MB)이 다 받아지면 각각 `jdk\`와 `sdk\cmdline-tools\latest\`로 풀려 있어야 한다. 없거나 깨졌으면 다시 받는다:
