@@ -196,7 +196,7 @@ export const golden: Pack['golden'] = {
     { id: 'g_gold', title: '목에 건 금빛', text: '태극마크를 달고 병역 문제를 풀었다.', when: { has: ['exempt'] } },
     { id: 'g_band', title: '팔에 두른 무게', text: '주장 완장을 찼다.', when: { has: ['captain'] } },
     { id: 'g_clutch', title: '마지막 키커', text: '모두가 피한 결정적 순간에 나서서, 해냈다.', when: { has: ['clutch_hero'] } },
-    { id: 'g_bond', title: '혼자 오르는 산은 없다', text: '커리어가 끝나는 날까지 가족·동료·감독이 모두 곁에 있었다.', when: { min: { family: 60, mates: 60, coach: 60 } } },
+    { id: 'g_bond', title: '혼자 오르는 산은 없다', text: '가족·동료·감독이 모두 곁에 있다. 커리어가 끝나는 날에도 그래야 한다.', when: { min: { family: 60, mates: 60, coach: 60 } } },
     { id: 'g_skill', title: '발끝의 사전', text: '배울 수 있는 기술을 열여섯 가지 넘게 익혔다.', when: { min: { skills: 16 } } },
     { id: 'g_love', title: '관중석의 한 사람', text: '평생 응원해 줄 사람과 가정을 이뤘다.', when: { has: ['married'] } },
   ],

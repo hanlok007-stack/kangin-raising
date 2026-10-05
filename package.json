@@ -1,7 +1,7 @@
 {
   "name": "kangin-raising",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.6.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,7 +10,9 @@
     "test": "vitest run",
     "icons": "node scripts/make-icons.cjs",
     "app:add": "npm i -D @capacitor/cli @capacitor/core @capacitor/android && npx cap add android",
-    "app:sync": "npm run build && npx cap sync"
+    "app:sync": "npm run build && npx cap sync",
+    "app:key": "powershell -NoProfile -File scripts/make-keystore.ps1",
+    "app:release": "powershell -NoProfile -File scripts/build-android.ps1"
   },
   "dependencies": {
     "react": "^19.3.0",

@@ -1,6 +1,6 @@
 // 서비스 워커: 한 번 연 뒤에는 오프라인에서도 실행된다.
 // 페이지(index.html)는 새 버전을 먼저 받아 보고, 해시가 붙은 정적 파일은 캐시를 먼저 쓴다.
-const CACHE = 'kangin-v4';
+const CACHE = 'kangin-v6';
 
 self.addEventListener('install', () => self.skipWaiting());
 

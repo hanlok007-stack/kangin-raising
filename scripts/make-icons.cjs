@@ -90,3 +90,53 @@ if (fs.existsSync(res)) {
   fs.writeFileSync(bgFile, '<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <color name="ic_launcher_background">#2E9E4F</color>\n</resources>\n');
   console.log('android launcher icons');
 }
+
+// 스토어 등록용 그래픽: 1024×500 대표 이미지(글자 없이 잔디·공·주황 띠)와 512 아이콘 사본
+function banner(w, h) {
+  const px = Buffer.alloc(h * (w * 4 + 1));
+  const hex = (s) => [parseInt(s.slice(1, 3), 16), parseInt(s.slice(3, 5), 16), parseInt(s.slice(5, 7), 16)];
+  const inC = (x, y, cx, cy, r) => (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
+  const penta = (x, y, cx, cy, r) => {
+    for (let i = 0; i < 5; i++) {
+      const a = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+      if ((x - cx) * Math.cos(a) + (y - cy) * Math.sin(a) > r * 0.81) return false;
+    }
+    return true;
+  };
+  const cx = w * 0.5;
+  const cy = h * 0.52;
+  const R = h * 0.34;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let col = hex(Math.floor((x / w) * 12) % 2 ? '#2e9e4f' : '#289047');
+      // 센터서클과 하프라인
+      const d = Math.hypot(x - cx, y - cy);
+      if (Math.abs(d - h * 0.46) < 4 || Math.abs(x - cx) < 3) col = hex('#d9f2df');
+      if (x + y < h * 0.5) col = hex('#ff5a36');
+      if (w - x + (h - y) < h * 0.5) col = hex('#ffd23f');
+      if (inC(x, y, cx + 10, cy + 10, R + 12)) col = hex('#1d1d1b');
+      if (inC(x, y, cx, cy, R + 10)) col = hex('#1d1d1b');
+      if (inC(x, y, cx, cy, R)) col = hex('#fffaf0');
+      if (penta(x, y, cx, cy, R * 0.36)) col = hex('#1d1d1b');
+      for (let i = 0; i < 5; i++) {
+        const a = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+        if (penta(x, y, cx + Math.cos(a) * R * 0.92, cy + Math.sin(a) * R * 0.92, R * 0.3) && inC(x, y, cx, cy, R)) col = hex('#1d1d1b');
+      }
+      const o = y * (w * 4 + 1) + 1 + x * 4;
+      px[o] = col[0];
+      px[o + 1] = col[1];
+      px[o + 2] = col[2];
+      px[o + 3] = 255;
+    }
+  }
+  const head = Buffer.alloc(13);
+  head.writeUInt32BE(w, 0);
+  head.writeUInt32BE(h, 4);
+  head[8] = 8;
+  head[9] = 6;
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', head), chunk('IDAT', zlib.deflateSync(px)), chunk('IEND', Buffer.alloc(0))]);
+}
+fs.mkdirSync('docs/store', { recursive: true });
+fs.writeFileSync('docs/store/feature-1024x500.png', banner(1024, 500));
+fs.writeFileSync('docs/store/icon-512.png', draw(512));
+console.log('docs/store/feature-1024x500.png, docs/store/icon-512.png');
