@@ -215,6 +215,52 @@ export const art: Record<string, Art> = {
   f_weight: ['hospital', '⚖️🍜', '야식 먹니?'],
   f_ambush: ['city', '🪟💥', '유리창 값'],
 
+  // ── 계약·이적 시장
+  y_salary: ['office', '✍️💰', '올해는 얼마 주실 겁니까'],
+  y_fa: ['office', '📞🔥', '전화기에 불났다'],
+  mk_hub: ['air', '🗺️📍', '어디로 갈까'],
+  mk_eu: ['stadium', '🇪🇺⚽', '돈보다 무대'],
+  mk_eu2: ['city', '🧭🏟️', '여기서 왕이 되거나'],
+  mk_as: ['night', '🌏💴', '통장이냐 생활이냐'],
+  mk_am: ['brazil', '🌎🎉', '축구가 종교인 곳'],
+  ag_stay: ['office', '🏠✋', '안 갑니다'],
+  ag_market: ['office', '📈👀', '내 몸값 실화냐'],
+
+  // ── 대표팀
+  n_senior: ['army', '🚰😐', '막내는 저기'],
+  n_fk: ['stadium', '🤝⚽', '이리 줘'],
+  n_tactic: ['office', '📋😑', '수비부터 한다'],
+  n_bench: ['studio', '🎤🪑', '왜 안 쓰나요?'],
+  n_callup: ['office', '✉️😠', '또 가냐'],
+  n_jetlag: ['air', '✈️😵', '지금 몇 시지'],
+  n_qual: ['stadium', '⏱️😱', '후반 43분'],
+  n_pk: ['stadium', '⚪🙋', '제가 차겠습니다'],
+  n_captain: ['office', '©️💪', '네가 차라'],
+  n_boo: ['stadium', '📢😞', '우우우—'],
+  n_rookie: ['pitch', '🥚😳', '막내가 알까기를'],
+  n_rift: ['home', '📃❌', '명단에 없다'],
+
+  // ── 감독·동료
+  f_coach_b: ['pitch', '📌⬇️', '2군 합류'],
+  f_coach_press: ['studio', '🎙️🎯', '누구 얘기인지 다 안다'],
+  f_mates_nopass: ['pitch', '🙋‍♂️🚫', '공이 안 온다'],
+  f_mates_locker: ['office', '🧴💥', '너 하나 때문에'],
+  f_mates_youth: ['school', '🍱😶', '옆자리만 비었다'],
+  c_mates_bond: ['air', '🚌😎', '맨 뒷자리'],
+  c_coach_trust: ['office', '📋🤲', '네가 짜 봐라'],
+
+  // ── 애인
+  v_long: ['night', '📱🕗', '거긴 지금 몇 시야?'],
+  v_anniv: ['home', '📅😨', '오늘 무슨 날인지 알아?'],
+  v_scandal: ['city', '📸🧢', '[단독] 열애 중'],
+  v_comfort: ['home', '🍲🫂', '져도 돼'],
+  v_parents: ['home', '🍚👨‍👩‍👦', '반찬이 열두 가지'],
+  v_propose: ['stadium', '💍🙇', '(대충 떨리는 짤)'],
+  v_baby: ['hospital', '👶🕓', '새벽 네 시'],
+  v_home: ['home', '📝🍽️', 'TV로만 보네'],
+  v_breakup: ['cafe', '💬💔', '우리 얘기 좀 해'],
+  v_again: ['pitch', '📣🙂', '거기 키 큰 분'],
+
   // ── 경기 장면
   sit_swarm: ['pitch', '🐝⚽', '벌떼 축구'],
   sit_open: ['pitch', '👀⚽', '틈이 보인다'],

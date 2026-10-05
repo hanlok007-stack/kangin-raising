@@ -218,3 +218,102 @@
   -webkit-tap-highlight-color: transparent;
   user-select: none;
 }
+
+/* ── v0.6: 선수 등급, 연봉, 에이전시 미팅, 황금 루트 ── */
+.badge.tier {
+  background: #fde68a;
+}
+.badge.pay {
+  background: #bbf7d0;
+}
+.duebox {
+  border: var(--line);
+  border-radius: 14px;
+  background: #fef3c7;
+  padding: 12px;
+  display: grid;
+  gap: 8px;
+}
+.duebox > b {
+  font-family: var(--head);
+  font-size: 1.05rem;
+}
+.duebox > p {
+  margin: 0;
+  font-size: 0.86rem;
+  color: var(--muted);
+}
+.choice .deal {
+  display: block;
+  margin-top: 2px;
+  color: #0f766e;
+  font-weight: 700;
+}
+.scout {
+  margin: 0;
+  padding: 8px 12px;
+  border: 2px dashed var(--ink);
+  border-radius: 12px;
+  font-weight: 700;
+  background: #f5f5f4;
+}
+.scout.up {
+  background: #dcfce7;
+}
+.scout.down {
+  background: #fee2e2;
+}
+.scout small {
+  display: block;
+  font-weight: 400;
+  color: var(--muted);
+}
+.pays {
+  display: grid;
+  gap: 6px;
+}
+.pays label {
+  font-size: 0.86rem;
+}
+.pays b {
+  float: right;
+}
+.clues {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.clues li {
+  display: grid;
+  grid-template-columns: 1.6em 1fr;
+  column-gap: 6px;
+  padding: 6px 10px;
+  border: 2px solid var(--ink);
+  border-radius: 10px;
+  background: #fff;
+}
+.clues li span {
+  grid-row: span 2;
+  align-self: center;
+}
+.clues li small {
+  color: var(--muted);
+}
+.clues li.done {
+  background: #fef9c3;
+}
+.clues li.todo {
+  opacity: 0.6;
+}
+.clues li.sum {
+  display: block;
+  border-style: dashed;
+  text-align: center;
+  font-weight: 700;
+  background: transparent;
+}
+.row.gold {
+  background: #fffbeb;
+}

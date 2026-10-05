@@ -202,7 +202,7 @@ export const pro: GameEvent[] = [
     id: 's_psg',
     cat: '이적',
     at: [2023, 2],
-    when: { stage: ['mal', 'val'], min: { ovr: 74, fame: 40 } },
+    when: { stage: ['mal', 'val'], min: { ovr: 72, fame: 40 } },
     title: '파리에서 온 전화',
     text: '시즌이 끝나자 에이전트의 전화가 불이 났다. 그중 한 통이 파리에서 왔다. "별들 사이에서 뛰어 볼 생각 있나?"',
     choices: [
@@ -245,7 +245,7 @@ export const pro: GameEvent[] = [
       {
         label: '내가 끝낸다',
         check: { stats: { sho: 1, dri: 1 }, dc: 74, trait: 'left' },
-        ok: { text: '후반 막판, 왼발 프리킥이 골문 구석에 꽂혔다. 결승골. 금메달.', fx: { fame: 22, nat: 18, stress: -20 }, goal: 1, flag: ['exempt', 'ag_gold'], real: true, news: '[아시안게임] 이강인 결승 프리킥! 한일전 승리, 금메달' },
+        ok: { text: '후반 막판, 왼발 프리킥이 골문 구석에 꽂혔다. 결승골. 금메달.', fx: { fame: 22, nat: 18, stress: -20 }, goal: 1, flag: ['exempt', 'ag_gold', 'clutch_hero'], real: true, news: '[아시안게임] 이강인 결승 프리킥! 한일전 승리, 금메달' },
         fail: { text: '프리킥이 골대를 맞고 나왔다. 그 소리가 아직도 귀에 남아 있다. 은메달.', fx: { stress: 22, men: 1 }, real: true },
       },
     ],

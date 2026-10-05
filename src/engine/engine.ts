@@ -83,6 +83,11 @@ export function getVar(p: Pack, s: GameState, k: string): number {
   if (k === 'ovr') return ovr(p, s);
   if (k === 'age') return ageOf(p, s);
   if (k.startsWith('n_')) return s.counts[k.slice(2)] ?? 0;
+  if (k === 'salary') return s.salary;
+  if (k === 'earned') return s.earned;
+  if (k === 'contract') return s.salary > 0 ? s.until - yearOf(p, s) : 0;
+  if (k === 'skills') return s.skills.length;
+  if (k === 'clubs') return new Set(s.pays.map((x) => x.team)).size;
   return s.v[k] ?? 0;
 }
 
@@ -96,6 +101,7 @@ export function test(p: Pack, s: GameState, c?: Cond): boolean {
   if (c.has && !c.has.every((f) => f in s.flags)) return false;
   if (c.any && !c.any.some((f) => f in s.flags)) return false;
   if (c.not && c.not.some((f) => f in s.flags)) return false;
+  if (c.away && c.away.includes(s.stage)) return false;
   if (c.min) for (const k in c.min) if (getVar(p, s, k) < c.min[k]) return false;
   if (c.max) for (const k in c.max) if (getVar(p, s, k) > c.max[k]) return false;
   return true;
@@ -137,8 +143,78 @@ function pushNews(s: GameState, text: string, tone: 'good' | 'bad', comment?: st
   if (s.news.length > 40) s.news.length = 40;
 }
 
-const fill = (p: Pack, s: GameState, t: string) =>
-  t.replaceAll('{hero}', p.hero).replaceAll('{team}', teamOf(p, s)).replaceAll('{age}', String(ageOf(p, s)));
+/* ───────── 프로 커리어: 선수 등급, 연봉, 계약 ───────── */
+
+export const careerOn = (p: Pack, s: GameState) => p.career.flag in s.flags;
+
+// 억 원 단위 금액을 읽기 좋게 다듬는다
+const money = (x: number) => (x >= 10 ? Math.round(x) : Math.max(0.3, Math.round(x * 10) / 10));
+export const won = (x: number) =>
+  x >= 1 ? `${x >= 10 ? Math.round(x).toLocaleString('ko-KR') : x.toFixed(1)}억 원` : `${Math.round(x * 10000).toLocaleString('ko-KR')}만 원`;
+
+const leagueOf = (p: Pack, stage: string) => p.world.leagues.find((l) => l.id === p.stages[stage].league)!;
+const leagueBase = (l: { level: number; pay?: number }) => 10 ** ((l.level - 60) / 18) * (l.pay ?? 1);
+
+// 선수 등급 (유망주 → … → 레전드). 프로가 되기 전에는 맨 아래 등급이다
+export function tierName(p: Pack, s: GameState): string {
+  const t = careerOn(p, s) ? (s.v.tier ?? 0) : 0;
+  for (const [min, name] of p.career.tiers) if (t >= min) return name;
+  return p.career.tiers[p.career.tiers.length - 1][1];
+}
+
+// 그 팀(스테이지)에서 지금의 나에게 시장이 매기는 연봉 (억 원)
+export function wageAt(p: Pack, s: GameState, stage = s.stage): number {
+  const age = ageOf(p, s);
+  const ageK = age <= 20 ? 0.7 : age <= 23 ? 0.9 : age <= 30 ? 1 : age <= 32 ? 0.85 : 0.65;
+  return leagueBase(leagueOf(p, stage)) * (0.5 + ((s.v.tier ?? 0) / 25) ** 1.5) * (1 + (s.v.fame ?? 0) / 400) * ageK;
+}
+
+// 계약서에 사인한다. mult: 시장가 대비 배율, years: 0이면 계약 기간은 그대로. FA는 이적료가 없는 만큼 더 받는다
+function sign(p: Pack, s: GameState, mult: number, years: number, floor = 0) {
+  s.salary = money(Math.max(wageAt(p, s) * mult * (s.fa ? 1.2 : 1), floor));
+  if (years > 0 || s.fa) s.until = yearOf(p, s) + Math.max(1, years);
+  s.fa = false;
+  delete s.flags.fa;
+  s.agencyTurn = Math.max(s.agencyTurn, s.turn);
+  s.pays.push({ year: yearOf(p, s), team: teamOf(p, s), salary: s.salary });
+  if (s.pays.length > 40) s.pays.shift();
+}
+
+// 이 선택지를 고르면 받게 될 연봉과 계약 기간 (이적·계약 선택지에만 값이 있다)
+export function offerOf(p: Pack, s: GameState, c: Choice): { salary: number; years: number } | null {
+  const o = c.ok;
+  if (!careerOn(p, s) || (o.pay == null && (!o.stage || o.stage === s.stage))) return null;
+  const k = s.fa ? 1.2 : 1;
+  const w = wageAt(p, s, o.stage ?? s.stage) * k;
+  return { salary: money(o.pay != null ? w * o.pay : Math.max(w, s.salary * 0.6)), years: o.term ?? (o.pay != null ? 2 : 3) }; // years 0: 계약 기간은 그대로
+}
+
+// 등급 점수는 최근 경기의 "급"을 따라 움직인다: 뛰는 무대 + 평점 + 어려운 기술을 성공시킨 정도
+function tierStep(p: Pack, s: GameState, perf: number): number {
+  const old = s.v.tier ?? 0;
+  const cap = careerOn(p, s) ? 100 : 19;
+  s.v.tier = clamp(old + Math.min(0.5, 0.12 * spanOf(p, s)) * (clamp(perf, 0, cap) - old), 0, 100);
+  s.v.tpeak = Math.max(s.v.tpeak ?? 0, s.v.tier);
+  return s.v.tier - old;
+}
+const stageClass = (p: Pack, s: GameState) => clamp((difficulty(p, s) - 45) * 1.6, 0, 70);
+
+// 황금 루트 단서: 조건을 채운 것만 내용이 드러난다
+export const clues = (p: Pack, s: GameState) => p.golden.clues.map((c) => ({ ...c, done: test(p, s, c.when) }));
+
+// 화면 문구의 {토큰}을 지금 상태로 채운다
+export const fillText = (p: Pack, s: GameState, t: string) =>
+  t
+    .replaceAll('{hero}', p.hero)
+    .replaceAll('{team}', teamOf(p, s))
+    .replaceAll('{age}', String(ageOf(p, s)))
+    .replaceAll('{salary}', won(s.salary))
+    .replaceAll('{market}', won(money(wageAt(p, s))))
+    .replaceAll('{offer}', won(money(wageAt(p, s) * 0.9)))
+    .replaceAll('{earned}', won(s.earned))
+    .replaceAll('{until}', String(s.until))
+    .replaceAll('{tier}', tierName(p, s));
+const fill = fillText;
 
 export function newGame(p: Pack, seed: number, perkId: string | null = null): GameState {
   const s: GameState = {
@@ -158,6 +234,11 @@ export function newGame(p: Pack, seed: number, perkId: string | null = null): Ga
     slots: p.moveSlots[0],
     cool: {},
     agencyTurn: -1,
+    salary: 0,
+    earned: 0,
+    until: 0,
+    fa: false,
+    pays: [],
     seen: [],
     evCount: 0,
     revived: false,
@@ -198,6 +279,17 @@ export function agencyActions(p: Pack, s: GameState) {
     .map((a) => ({ action: a, wait: Math.max(0, (s.cool[a.id] ?? 0) - s.turn), used: s.agencyTurn === s.turn }));
 }
 
+// 프로 구간(분기 턴)에는 every턴마다 에이전시 미팅이 일정보다 먼저다
+export function agencyDue(p: Pack, s: GameState): boolean {
+  return (
+    s.phase === 'plan' &&
+    careerOn(p, s) &&
+    slot(p, s).per >= 4 &&
+    s.turn - s.agencyTurn >= p.career.every &&
+    agencyActions(p, s).some((a) => a.wait === 0 && !a.used)
+  );
+}
+
 export function startAgency(p: Pack, s0: GameState, id: string): GameState {
   const s = clone(s0);
   const x = agencyActions(p, s).find((a) => a.action.id === id);
@@ -213,6 +305,7 @@ export function startAgency(p: Pack, s0: GameState, id: string): GameState {
 // 일정 실행: 행동을 순서대로 적용하고 훈련 결과 리포트를 남긴다
 export function runPlan(p: Pack, s0: GameState, ids: string[]): GameState {
   const s = clone(s0);
+  if (agencyDue(p, s)) return s;
   const sp = spanOf(p, s);
   const g = p.gainScale * sp * interp(p.growth, ageOf(p, s)) * (s.pa / 175) * p.stages[s.stage].facility;
   const cap = Math.min(99, s.pa / 2 + 2);
@@ -258,11 +351,13 @@ function startMatch(p: Pack, s: GameState): GameState {
   s.evCount = 0;
   if (s.injured > 0) {
     s.note = p.text.injured;
+    if (careerOn(p, s)) tierStep(p, s, stageClass(p, s) - 8);
     return toEvent(p, s);
   }
   if (s.v.coach < 10) {
     applyFx(p, s, { stress: 6, joy: -5 }, {});
     s.note = p.text.dropped;
+    if (careerOn(p, s)) tierStep(p, s, stageClass(p, s) - 14);
     return toEvent(p, s);
   }
   const sub = s.v.coach < 30 && rand(s) < 0.65;
@@ -320,6 +415,8 @@ function moveChance(p: Pack, s: GameState, sit: Situation, m: Move): number {
     const ps = moveById(p, id)?.passive;
     if (ps && (!ps.kind || ps.kind === m.kind) && (!ps.tag || sit.tags?.includes(ps.tag))) score += ps.add;
   }
+  // 동료들과 사이가 좋으면 패스가 통하고, 나쁘면 받아 주는 사람이 없다
+  if (m.kind === 'pass') score += clamp(((s.v.mates ?? 50) - 50) / 10, -4, 4);
   const target = difficulty(p, s) + p.matchHard + m.rel + (sit.mod?.[m.kind] ?? 0);
   return clamp(0.5 + (score - target) / 45, 0.05, 0.95);
 }
@@ -365,7 +462,7 @@ function makeSheet(p: Pack, s: GameState) {
   const o = ovr(p, s);
   const minutes = mt.sub ? 18 + Math.floor(rand(s) * 15) : 90;
   const frac = minutes / 90;
-  let rating = 6.1 + clamp((o - D) / 15, -0.6, 0.6) + (rand(s) - 0.5) * 0.5;
+  let rating = 6.0 + clamp((o - D) / 15, -0.6, 0.6) + (rand(s) - 0.5) * 0.5;
   let goals = 0;
   let assists = 0;
   let key = 0;
@@ -375,13 +472,15 @@ function makeSheet(p: Pack, s: GameState) {
   let dWon = 0;
   let fame = 0;
   let leak = 0;
+  let bold = 0; // 숨은 손익: 어려운 기술일수록 성공의 값이 크고, 실패하면 그만큼 잃는다
   const fx: Fx = { iq: 0.15 * frac, men: 0.1 * frac };
   for (const pl of mt.plays) {
     const m = moveById(p, pl.move);
-    rating += (pl.ok ? m.rate : m.miss) * 0.7;
+    rating += (pl.ok ? m.rate : m.miss) * 0.65;
+    bold += pl.ok ? m.rate * (1.3 - pl.p) * 16 : m.miss * 8;
     if (pl.goal) {
       goals++;
-      rating += 0.7;
+      rating += 0.6;
     }
     if (pl.assist) {
       assists++;
@@ -431,7 +530,8 @@ function makeSheet(p: Pack, s: GameState) {
   const good = rating >= 6.5;
   const coach = p.text.coach.find(([min]) => rating >= min)?.[1] ?? '';
   const comment = pick(s, good ? p.comments.good : p.comments.bad);
-  const sheet: Sheet = { gf, ga, minutes, rating, goals, assists, shots: [shots, onT], passes: [pMade, pTry], dribbles: [dWon, dTry], keyPasses: key, mom, coach, comment, d };
+  const scout = tierStep(p, s, stageClass(p, s) + (rating - 6.5) * 8 + clamp(bold, -10, 18) - (mt.sub ? 5 : 0));
+  const sheet: Sheet = { gf, ga, minutes, rating, goals, assists, shots: [shots, onT], passes: [pMade, pTry], dribbles: [dWon, dTry], keyPasses: key, mom, coach, comment, d, scout };
   mt.sheet = sheet;
 
   s.rec.apps++;
@@ -495,7 +595,9 @@ function toEvent(p: Pack, s: GameState): GameState {
 
 // 커리어를 끝까지 마쳤을 때의 엔딩: final 엔딩을 위에서부터 판정
 function finalEnding(p: Pack, s: GameState): string {
-  const e = p.endings.find((x) => x.final && test(p, s, x.when));
+  const gold = p.golden.ending;
+  if (p.golden.clues.length && clues(p, s).every((c) => c.done) && p.endings.some((x) => x.id === gold)) return gold;
+  const e = p.endings.find((x) => x.final && x.id !== gold && test(p, s, x.when));
   return e ? e.id : p.endings[p.endings.length - 1].id;
 }
 
@@ -517,6 +619,7 @@ function endTurn(p: Pack, s: GameState): GameState {
     applyFx(p, s, fx, {});
   }
   s.v.peak = Math.max(s.v.peak ?? 0, ovr(p, s));
+  s.earned += (s.salary * sp) / 4;
   s.injured = Math.max(0, s.injured - sp);
   s.evCount = 0;
   s.turn++;
@@ -536,7 +639,27 @@ function endTurn(p: Pack, s: GameState): GameState {
   }
   if (s.turn >= totalTurns(p)) return finish(p, s, finalEnding(p, s));
   s.phase = 'plan';
+  if (careerOn(p, s) && slot(p, s).part === 0) openYear(p, s);
   return s;
+}
+
+// 새해 첫 턴: 프로 첫해는 신인 계약, 계약이 끝난 해는 FA 시장, 그 밖에는 연봉 협상으로 한 해를 연다
+function openYear(p: Pack, s: GameState) {
+  if (!s.salary) {
+    sign(p, s, 0.8, 3);
+    pushNews(s, fill(p, s, p.career.news), 'good');
+    return;
+  }
+  const up = yearOf(p, s) >= s.until;
+  if (up) {
+    s.fa = true;
+    s.flags.fa = `${yearOf(p, s)}년 계약 만료`;
+  }
+  const id = up ? p.career.fa : p.career.salary;
+  if (!p.events.some((e) => e.id === id)) return;
+  s.agencyTurn = s.turn;
+  s.cur = { id, back: true };
+  s.phase = 'scene';
 }
 
 export const eventOf = (p: Pack, s: GameState): GameEvent | null => (s.cur ? (p.events.find((e) => e.id === s.cur!.id) ?? null) : null);
@@ -552,7 +675,7 @@ export function chance(p: Pack, s: GameState, c: Choice): number | null {
   }
   let score = sum / tot + (trait ? (p.traits[trait] ?? 0) : 0) + (s.v.stamina - 50) / 12;
   for (const f in boost) if (f in s.flags) score += boost[f];
-  const target = dc ?? difficulty(p, s) + (rel ?? 0);
+  const target = dc ?? difficulty(p, s) + (rel ?? 0) + p.checkHard;
   // 실제 커리어와 같은 선택은 세계선이 수렴하려는 힘을 받는다
   return clamp(0.5 + (score - target) / 45 + (c.ok.real ? p.realBonus : 0), 0.05, 0.95);
 }
@@ -568,6 +691,9 @@ export function choose(p: Pack, s0: GameState, idx: number): GameState {
   const ok = pr == null || rand(s) < pr;
   const o: Outcome = ok ? c.ok : (c.fail ?? c.ok);
   const d: Fx = {};
+  const wasPro = careerOn(p, s);
+  const from = s.stage;
+  const paid = s.pays.length;
   if (o.fx) applyFx(p, s, o.fx, d);
   applySet(s, o.set, d);
   const origin = `${yearOf(p, s)}년 「${ev.title}」`;
@@ -582,10 +708,17 @@ export function choose(p: Pack, s0: GameState, idx: number): GameState {
   if (o.goal) s.rec.goals += o.goal;
   if (o.assist) s.rec.assists += o.assist;
   if (o.end) s.pendingEnd = o.end === '@final' ? finalEnding(p, s) : o.end; // '@final': 은퇴 선언
-  if (o.news) pushNews(s, o.news, ok ? 'good' : 'bad');
+  if (o.news) pushNews(s, fill(p, s, o.news), ok ? 'good' : 'bad');
+  // 프로라면 팀을 옮기거나 계약 조건이 걸린 선택은 새 계약으로 이어진다
+  if (careerOn(p, s)) {
+    if (o.pay != null) sign(p, s, o.pay, o.term ?? 2);
+    else if (!wasPro) sign(p, s, 0.8, 3);
+    else if (s.stage !== from) sign(p, s, 1, o.term ?? 3, s.salary * 0.6);
+    if (s.pays.length > paid && wasPro) pushNews(s, fill(p, s, p.career.news), 'good');
+  }
   if (!s.seen.includes(ev.id)) s.seen.push(ev.id);
   s.history.push({ turn: s.turn, title: ev.title, label: c.label, real: o.real });
-  s.cur.result = { ok, label: c.label, text: o.text, d, p: pr, skill: o.skill };
+  s.cur.result = { ok, label: c.label, text: o.text, d, p: pr, skill: o.skill, signed: s.pays.length > paid ? { salary: s.salary, until: s.until } : undefined };
   return s;
 }
 
@@ -601,6 +734,14 @@ export function advance(p: Pack, s0: GameState): GameState {
   if (s.phase === 'sheet') return toEvent(p, s);
   if (s.phase === 'scene' && s.cur?.result) {
     if (s.pendingEnd) return finish(p, s, s.pendingEnd);
+    // 방금 선택이 부른 이벤트(이적 시장의 다음 장 등)는 기다리지 않고 바로 연다
+    while (s.queue.length) {
+      const id = s.queue.shift()!;
+      if (p.events.some((e) => e.id === id)) {
+        s.cur = { id, back: s.cur.back };
+        return s;
+      }
+    }
     if (!s.cur.back) {
       // 턴이 긴 시기(반기)에는 한 턴에 이벤트가 두 번까지 온다
       s.evCount++;
@@ -613,10 +754,9 @@ export function advance(p: Pack, s0: GameState): GameState {
       }
       return endTurn(p, s);
     }
-    // 에이전시에서 연 이벤트: 이어지는 이벤트가 있으면 바로 열고, 없으면 일정 화면으로
-    const next = s.queue.shift();
-    s.cur = next ? { id: next, back: true } : null;
-    s.phase = next ? 'scene' : 'plan';
+    // 에이전시에서 연 이벤트가 끝나면 일정 화면으로
+    s.cur = null;
+    s.phase = 'plan';
     return s;
   }
   return s;
@@ -673,6 +813,8 @@ export function standing(p: Pack, s: GameState) {
   const eur = age < 15 ? 0 : 10 ** ((o - 40) / 12.5) * 1e4 * (age <= 19 ? 1.4 : 1.2) * (1 + (s.v.fame ?? 0) / 200);
   const here = p.stages[s.stage].league;
   return {
+    wage: careerOn(p, s) ? wageAt(p, s) : 0,
+    leagueAvg: leagueBase(leagueOf(p, s.stage)) * 2.4, // 그 리그 주전급의 평균 연봉 (억 원)
     ovr: o,
     par,
     real: interp(p.world.real, age),

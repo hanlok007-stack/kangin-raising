@@ -2,11 +2,15 @@
 import type { Pack } from '../../engine/types';
 import { actions } from './actions';
 import { art } from './art';
+import { bonds } from './bonds';
+import { career, CLUB_IDS, clubs, golden, market } from './career';
 import custom from './custom.json';
 import { agency, chain, fails } from './chain';
 import { crisis } from './crisis';
 import { endings } from './endings';
 import { moves, situations } from './match';
+import { nation } from './nation';
+import { romance } from './romance';
 import { abroad, late, whims } from './more';
 import { pro } from './pro';
 import { random, triggered } from './random';
@@ -59,21 +63,25 @@ const base: Pack = {
     lang: '외국어',
     nat: '대표팀',
     joy: '의욕',
+    love: '애인',
   },
-  hidden: ['homesick', 'injury', 'rival', 'love', 'peak'],
+  hidden: ['homesick', 'injury', 'rival', 'peak', 'tier', 'tpeak'],
   negative: ['stress', 'homesick', 'injury'],
   init: {
     dri: 14, pas: 12, sho: 11, phy: 5, iq: 9, men: 12,
     stamina: 80, stress: 10,
     coach: 40, family: 70, mates: 40, fame: 5, nat: 0,
-    homesick: 0, injury: 0, lang: 0, rival: 0, love: 0, joy: 70, peak: 0,
+    homesick: 0, injury: 0, lang: 0, rival: 0, love: 0, joy: 70, peak: 0, tier: 0, tpeak: 0,
   },
   initStage: 'shoot',
-  pa: [150, 200],
-  growth: [[6, 2.0], [10, 2.0], [18, 1.3], [25, 1.0], [31, 0.6], [34, 0.3]],
+  pa: [146, 192],
+  growth: [[6, 2.0], [10, 2.0], [17, 1.35], [19, 1.0], [25, 0.75], [31, 0.45], [34, 0.25]],
   gainScale: 0.52,
-  matchHard: 3,
+  matchHard: 10,
+  checkHard: 2,
   moveSlots: [4, 6],
+  career,
+  golden,
   aptitude: { dri: 1.1, pas: 1.15, sho: 1.0, phy: 0.75, iq: 1.1, men: 1.0 },
   traits: { left: 8 },
   baseWeights: { dri: 0.2, pas: 0.2, sho: 0.15, phy: 0.15, iq: 0.15, men: 0.15 },
@@ -83,13 +91,13 @@ const base: Pack = {
     CM: { name: '중앙 미드필더', w: { pas: 0.28, iq: 0.25, phy: 0.17, men: 0.12, dri: 0.12, sho: 0.06 }, bonus: ['iq', 'phy'] },
     SS: { name: '세컨드 스트라이커', w: { sho: 0.3, dri: 0.22, iq: 0.15, pas: 0.13, men: 0.1, phy: 0.1 }, bonus: ['sho', 'dri'] },
   },
-  stages,
+  stages: { ...stages, ...clubs },
   actions,
   moves,
   situations,
   cats,
   // 순서가 우선순위다: 위기(triggered, fails) → 스토리 → 행동 반복 → 나머지
-  events: [...triggered, ...fails, ...crisis, ...story, ...pro, ...late, ...agency, ...whims, ...abroad, ...chain, ...random],
+  events: [...triggered, ...fails, ...crisis, ...bonds, ...story, ...pro, ...late, ...agency, ...market, ...whims, ...abroad, ...chain, ...nation, ...romance, ...random],
   art,
   endings,
   gates,
@@ -106,6 +114,14 @@ const base: Pack = {
     { when: { stage: ['es', 'bra', 'ned', 'ger', 'cat'], min: { lang: 60 } }, fx: { homesick: 2 } },
     { when: { has: ['chronic'] }, fx: { injury: 2 } },
     { when: { has: ['partner'] }, fx: { stress: -3 } },
+    // 프로의 자리는 가만히 있으면 식는다: 감독의 신뢰도, 라커룸의 온도도
+    { when: { has: ['pro'] }, fx: { coach: -1.2, mates: -0.8 } },
+    // 애인: 돌보지 않으면 식고, 곁에 있으면 버팀목이 된다
+    { when: { has: ['lover'] }, fx: { love: -2.5 } },
+    { when: { has: ['lover'], min: { love: 50 } }, fx: { stress: -2 } },
+    { when: { has: ['married'] }, fx: { love: 2, stress: -2 } },
+    { when: { has: ['dad'] }, fx: { joy: 1 } },
+    { when: { stage: CLUB_IDS }, fx: { lang: 3 } },
     { when: { has: ['dating'] }, fx: { love: 4 } },
     { when: { min: { nat: 1 } }, fx: { nat: -0.4 } },
   ],

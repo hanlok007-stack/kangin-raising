@@ -1,21 +1,27 @@
 import { describe, expect, it } from 'vitest';
 import { packs } from '../data';
 import { kangin as pack } from '../data/kangin';
+import { CLUB_IDS } from '../data/kangin/career';
 import {
   advance,
   agencyActions,
+  agencyDue,
   availableActions,
   avgRating,
   chance,
   choose,
+  clues,
   eventOf,
   movesFor,
   newGame,
+  offerOf,
   ovr,
   playMove,
   runPlan,
   standing,
   startAgency,
+  tierName,
+  wageAt,
   test as cond,
   timeline,
   totalTurns,
@@ -42,7 +48,9 @@ function play(seed: number, policy: Policy, pk = pack): GameState {
   let s = newGame(pack, seed);
   for (let guard = 0; guard < 3000 && s.phase !== 'ending'; guard++) {
     if (s.phase === 'plan') {
-      const ag = policy.agency?.(s);
+      // 에이전시 미팅이 먼저인 턴에는 뭐라도 하나 해야 일정으로 넘어간다
+      const ready = agencyActions(pack, s).filter((a) => !a.used && a.wait === 0).map((a) => a.action.id);
+      const ag = policy.agency?.(s) ?? (agencyDue(pack, s) ? (ready.includes('ag_stay') ? 'ag_stay' : ready[0]) : null);
       const t = ag ? startAgency(pack, s, ag) : s;
       s = t.phase === 'scene' ? t : runPlan(pack, s, policy.plan(s));
     } else if (s.phase === 'match') {
@@ -55,6 +63,7 @@ function play(seed: number, policy: Policy, pk = pack): GameState {
       s = choose(pack, s, policy.pick(s, open));
     } else s = advance(pack, s);
   }
+
   expect(s.phase).toBe('ending');
   return s;
 }
@@ -129,8 +138,8 @@ const smartPolicy = (seed: number, opts: { focus?: string[]; choices?: Record<st
       if (forced != null && open.some((x) => x.i === forced)) return forced;
       const real = open.find((x) => x.c.ok.real === true);
       if (real) return real.i;
-      // 끝장나는 선택, 실제와 다르다고 표시된 선택, 팀을 옮기는 선택은 되도록 피한다
-      const calm = open.filter((x) => !x.c.ok.end && !x.c.fail?.end && x.c.ok.real !== false && !x.c.ok.stage);
+      // 끝장나는 선택, 실제와 다르다고 표시된 선택, 팀을 옮기는 선택(이적 시장 구경 포함)은 되도록 피한다
+      const calm = open.filter((x) => !x.c.ok.end && !x.c.fail?.end && x.c.ok.real !== false && !x.c.ok.stage && !x.c.ok.next?.startsWith('mk_'));
       const safe = calm.length ? calm : open.filter((x) => !x.c.ok.end && !x.c.fail?.end);
       const best = (safe.length ? safe : open)
         .map((x) => ({ i: x.i, p: chance(pack, s, x.c) ?? 0.9 }))
@@ -158,7 +167,10 @@ describe('데이터 무결성', () => {
   });
 
   it('콘텐츠 목표를 채운다', () => {
-    expect(pack.events.length).toBeGreaterThanOrEqual(120);
+    expect(pack.events.length).toBeGreaterThanOrEqual(180);
+    expect(CLUB_IDS.length).toBeGreaterThanOrEqual(12);
+    expect(pack.events.filter((e) => e.cat === '대표팀' && /^n_/.test(e.id)).length).toBeGreaterThanOrEqual(8);
+    expect(pack.golden.clues.length).toBe(7);
     expect(pack.actions.filter((a) => a.kind === 'train').length).toBeGreaterThanOrEqual(10);
     expect(pack.actions.filter((a) => a.kind === 'agency').length).toBeGreaterThanOrEqual(8);
     expect(pack.moves.filter((m) => m.learn).length).toBeGreaterThanOrEqual(15);
@@ -269,6 +281,110 @@ describe('엔진', () => {
   });
 });
 
+describe('프로 커리어', { timeout: 120000 }, () => {
+  const focus = ['pass', 'tactic', 'tech', 'fk'];
+
+  it('프로가 되면 연봉이 생기고, 해마다 협상하고, 계약이 끝나면 FA 시장에 나온다', () => {
+    const s = play(1003, smartPolicy(3, { focus }));
+    expect('pro' in s.flags).toBe(true);
+    expect(s.pays.length).toBeGreaterThan(5);
+    expect(s.earned).toBeGreaterThan(10);
+    expect(s.history.some((h) => h.title === '연봉 협상')).toBe(true);
+    expect(s.history.some((h) => h.title === 'FA — 시장에 나오다')).toBe(true);
+  });
+
+  it('에이전시 미팅이 먼저인 턴에는 일정이 진행되지 않고, 하나를 고르면 풀린다', () => {
+    // 프로 첫해 3분기(계약 뒤 두 턴)까지 관리형으로 진행한다
+    const pol = smartPolicy(3, { focus });
+    let s = newGame(pack, 1003);
+    for (let guard = 0; guard < 3000 && !agencyDue(pack, s); guard++) {
+      expect(s.phase).not.toBe('ending');
+      if (s.phase === 'plan') s = runPlan(pack, s, pol.plan(s));
+      else if (s.phase === 'match') {
+        const opts = movesFor(pack, s);
+        s = opts.length ? playMove(pack, s, pol.move(s, opts)) : advance(pack, s);
+      } else if (s.phase === 'scene' && !s.cur!.result) {
+        const open = eventOf(pack, s)!.choices.map((c, i) => ({ c, i })).filter((x) => cond(pack, s, x.c.need));
+        s = choose(pack, s, pol.pick(s, open));
+      } else s = advance(pack, s);
+    }
+    expect(agencyDue(pack, s)).toBe(true);
+    expect(runPlan(pack, s, ['rest', 'rest', 'rest'])).toEqual(s);
+    s = startAgency(pack, s, 'ag_stay');
+    s = advance(pack, choose(pack, s, 1));
+    expect(s.phase).toBe('plan');
+    expect(agencyDue(pack, s)).toBe(false);
+    expect(runPlan(pack, s, ['rest', 'rest', 'rest']).phase).toBe('report');
+  });
+
+  it('숨은 손익비: 어려운 기술을 성공시키면 쉬운 기술보다 등급이 크게 오르고, 실패하면 깎인다', () => {
+    const scout = (move: string, ok: boolean, p: number) => {
+      const s = newGame(pack, 21);
+      s.turn = 52;
+      s.stage = 'val';
+      s.flags.pro = '';
+      s.v.tier = 40;
+      for (const st of pack.stats) s.v[st.key] = 75;
+      s.phase = 'match';
+      const one = { sit: 'sit_open', move, ok, p, text: '', goal: false, assist: false };
+      s.match = { opp: '', sub: false, sits: ['sit_open', 'sit_open'], offers: [[move], [move]], plays: [one, one], shown: 1 };
+      return advance(pack, s).match!.sheet!.scout;
+    };
+    expect(scout('nutmeg', true, 0.4)).toBeGreaterThan(scout('keep', true, 0.9) + 1);
+    expect(scout('nutmeg', false, 0.4)).toBeLessThan(scout('keep', false, 0.9));
+  });
+
+  it('등급이 높고 리그가 클수록 시장이 매기는 연봉이 오른다', () => {
+    const s = newGame(pack, 5);
+    s.turn = 60;
+    s.flags.pro = '';
+    s.stage = 'kl';
+    s.v.tier = 30;
+    const low = wageAt(pack, s);
+    s.v.tier = 70;
+    expect(wageAt(pack, s)).toBeGreaterThan(low * 2);
+    expect(wageAt(pack, s, 'psg')).toBeGreaterThan(wageAt(pack, s, 'kl') * 3);
+    expect(tierName(pack, s)).toBe('월드클래스');
+    const club = pack.events.find((e) => e.id === 'mk_as')!.choices[1];
+    expect(offerOf(pack, s, club)!.salary).toBeGreaterThan(0);
+  });
+
+  it('세계 지도를 따라가면 다른 대륙의 구단으로 옮겨 뛴다', () => {
+    const s = play(1003, smartPolicy(3, { focus, choices: { y_fa: 0, mk_hub: 2, mk_as: 1 } }));
+    expect(new Set(s.pays.map((x) => x.team)).size).toBeGreaterThan(2);
+    expect('c_as' in s.flags).toBe(true);
+    expect(s.pays.some((x) => x.team === 'FC 간사이')).toBe(true);
+  });
+
+  it('황금 루트는 단서 일곱 개를 모두 채운 판에서만 열린다', () => {
+    const ready = (full: boolean) => {
+      const s = newGame(pack, 8);
+      s.turn = totalTurns(pack) - 3;
+      s.stage = 'psg';
+      for (const f of ['pro', 'm_psg', 'exempt', 'captain', 'clutch_hero', ...(full ? ['married'] : [])]) s.flags[f] = '';
+      Object.assign(s.v, { tpeak: 85, family: 70, mates: 70, coach: 70 });
+      s.skills = pack.moves.filter((m) => m.learn).map((m) => m.id);
+      s.cur = { id: 'ag_retire', back: true };
+      s.phase = 'scene';
+      return advance(pack, choose(pack, s, 0)).ending;
+    };
+    expect(ready(true)).toBe('golden');
+    expect(ready(false)).toBe('real');
+    expect(clues(pack, newGame(pack, 1)).filter((c) => c.done).length).toBe(0);
+  });
+
+  it('다른 선수 팩도 연봉·이적 시장·세계 구단을 물려받고, 연애 단서는 다른 단서로 바뀐다', () => {
+    for (const { pack: p } of packs.slice(1)) {
+      for (const id of ['y_salary', 'y_fa', 'mk_hub', 'mk_eu', 'mk_as', 'mk_am', 'ag_stay', 'n_pk', 'f_mates_locker']) expect(p.events.some((e) => e.id === id), p.id + ' ' + id).toBe(true);
+      for (const id of CLUB_IDS) expect(p.stages[id], p.id + ' ' + id).toBeTruthy();
+      expect(p.events.some((e) => e.cat === '연애')).toBe(false);
+      expect(p.actions.some((a) => a.id === 'date')).toBe(false);
+      expect(p.golden.clues.map((c) => c.id)).toContain('g_rich');
+      expect(p.events.find((e) => e.id === 'ag_offers')!.choices.some((c) => c.ok.next === 'mk_hub')).toBe(true);
+    }
+  });
+});
+
 describe('다른 선수 팩', { timeout: 180000 }, () => {
   for (const { pack: p } of packs.slice(1)) {
     it(p.hero + ': 실제 선택을 따라가면 REAL ROUTE에 닿을 수 있고, 무작위로 눌러도 끝까지 간다', () => {
@@ -298,7 +414,7 @@ describe('다른 선수 팩', { timeout: 180000 }, () => {
             if (!follow) return open[Math.floor(r() * open.length)].i;
             const real = open.find((x) => x.c.ok.real === true);
             if (real) return real.i;
-            const calm = open.filter((x) => !x.c.ok.end && !x.c.fail?.end && x.c.ok.real !== false && !x.c.ok.stage);
+            const calm = open.filter((x) => !x.c.ok.end && !x.c.fail?.end && x.c.ok.real !== false && !x.c.ok.stage && !x.c.ok.next?.startsWith('mk_'));
             return (calm[0] ?? open[0]).i;
           },
         };
@@ -323,6 +439,11 @@ describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
     let rate = 0;
     let skills = 0;
     let exempt = 0;
+    let tier = 0;
+    let earned = 0;
+    let gold = 0;
+    let tmax = 0;
+    const got: Record<string, number> = {};
     const finals: number[] = [];
     for (let i = 0; i < N; i++) {
       const s = play(1000 + i, mk(i));
@@ -336,12 +457,17 @@ describe('자동 플레이 시뮬레이션', { timeout: 180000 }, () => {
       rate += avgRating(s);
       skills += s.skills.length;
       if ('exempt' in s.flags) exempt++;
+      tier += s.v.tpeak ?? 0;
+      earned += s.earned;
+      gold += clues(pack, s).filter((c) => c.done).length;
+      tmax = Math.max(tmax, s.v.tpeak ?? 0);
+      for (const c of clues(pack, s)) if (c.done) got[c.id] = (got[c.id] ?? 0) + 1;
     }
     finals.sort((a, b) => a - b);
     const q = (f: number) => (finals.length ? finals[Math.floor(f * (finals.length - 1))].toFixed(1) : '-');
     const sorted = Object.entries(tally).sort((a, b) => b[1] - a[1]);
     console.log(
-      `[${name}] ${sorted.map(([k, v]) => `${k} ${v}`).join(' · ')}\n  완주 ${finals.length} · 완주자 OVR 10/50/90% ${q(0.1)}/${q(0.5)}/${q(0.9)} · 평균 OVR ${(ovrSum / N).toFixed(1)} · 점수 ${(scoreSum / N).toFixed(1)} · 이벤트 ${(seen / N).toFixed(1)}개 · 이탈 ${(wl / N).toFixed(0)}% · 공격포인트 ${(ga / N).toFixed(1)} · 평점 ${(rate / N).toFixed(2)} · 기술 ${(skills / N).toFixed(1)}개 · 병역특례 ${exempt}`,
+      `[${name}] ${sorted.map(([k, v]) => `${k} ${v}`).join(' · ')}\n  완주 ${finals.length} · 완주자 OVR 10/50/90% ${q(0.1)}/${q(0.5)}/${q(0.9)} · 평균 OVR ${(ovrSum / N).toFixed(1)} · 점수 ${(scoreSum / N).toFixed(1)} · 이벤트 ${(seen / N).toFixed(1)}개 · 이탈 ${(wl / N).toFixed(0)}% · 공격포인트 ${(ga / N).toFixed(1)} · 평점 ${(rate / N).toFixed(2)} · 기술 ${(skills / N).toFixed(1)}개 · 병역특례 ${exempt} · 최고 등급점수 ${(tier / N).toFixed(0)} · 통산 수입 ${(earned / N).toFixed(0)}억 · 단서 ${(gold / N).toFixed(1)} (${Object.entries(got).map(([k, v]) => k.slice(2) + ' ' + v).join(', ')}) · 등급점수 최고 ${tmax.toFixed(0)}`,
     );
     return tally;
   };

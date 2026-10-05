@@ -1,7 +1,8 @@
 // 엔진 타입. 엔진은 스탯 이름이나 이벤트 내용을 모른다 — 전부 캐릭터 팩(Pack)이 정한다.
 // 팩은 함수 없이 JSON으로 직렬화 가능한 데이터만 담는다 (편집자 화면에서 내보내기/가져오기).
-// 엔진이 예약한 변수 키: stamina, stress, injury, coach, fame, nat
-// 계산값: ovr, age, n_<행동id>(그 행동을 한 횟수)
+// 엔진이 예약한 변수 키: stamina, stress, injury, coach, fame, nat, mates, tier(선수 등급 점수), tpeak(최고 등급 점수)
+// 계산값: ovr, age, n_<행동id>(그 행동을 한 횟수), salary, earned, contract(남은 계약 연수), skills(배운 기술 수), clubs(거친 팀 수)
+// 엔진이 만드는 플래그: fa (계약이 끝나 시장에 나와 있는 동안)
 
 export type Fx = Record<string, number>;
 
@@ -11,6 +12,7 @@ export interface Cond {
   has?: string[]; // 플래그 전부 보유
   any?: string[]; // 플래그 중 하나 이상 보유
   not?: string[]; // 플래그 하나도 없음
+  away?: string[]; // 지금 이 스테이지에 있지 않음
   min?: Fx;
   max?: Fx;
 }
@@ -32,6 +34,8 @@ export interface Outcome {
   assist?: number;
   news?: string;
   real?: boolean; // 세계선 분기: 실제 커리어와 같은 선택이면 true
+  pay?: number; // 연봉을 시장가 × pay로 다시 정한다 (stage가 있으면 새 팀 기준)
+  term?: number; // 계약 기간(년). pay와 함께 쓴다
 }
 
 export interface Check {
@@ -45,6 +49,7 @@ export interface Check {
 export interface Choice {
   label: string;
   need?: Cond;
+  lock?: string; // 조건이 안 맞아 잠겼을 때 보여 줄 문구 (없으면 "다른 세계선의 선택지")
   check?: Check; // 있으면 fail도 있어야 한다
   ok: Outcome;
   fail?: Outcome;
@@ -177,7 +182,7 @@ export interface Milestone {
 
 export interface World {
   cohort: string;
-  leagues: { id: string; name: string; level: number }[];
+  leagues: { id: string; name: string; level: number; pay?: number }[]; // pay: 실력 대비 돈을 더 주는 리그의 배율
   par: [number, number][]; // 나이별 평범한 유망주의 OVR
   real: [number, number][]; // 실제 세계선의 추정 OVR
 }
@@ -208,7 +213,19 @@ export interface Pack {
   growth: [number, number][]; // [나이, 배율] 선형 보간
   gainScale: number; // 훈련 성장량 전체 배율 (밸런스 손잡이)
   matchHard: number; // 경기 판정 난이도 보정 (밸런스 손잡이)
+  checkHard: number; // 이벤트 판정 난이도 보정 — 스테이지 수준에 견주는 판정(rel)에만 붙는다
   moveSlots: [number, number]; // 경기 한 장면에 나오는 선택지 수 [기본, 최대]
+  // 프로 커리어: flag가 생기면 연봉·계약·선수 등급이 굴러가고, every턴마다 에이전시 미팅이 먼저 온다
+  career: {
+    flag: string;
+    salary: string; // 해마다 여는 연봉 협상 이벤트
+    fa: string; // 계약이 끝난 해에 여는 FA 시장 이벤트
+    every: number;
+    tiers: [number, string][]; // [최소 등급 점수, 이름] 내림차순
+    news: string; // 계약 기사 문구
+  };
+  // 조건이 공개되지 않은 최고 엔딩과, 그 조건을 하나씩 암시하는 단서
+  golden: { ending: string; clues: { id: string; title: string; text: string; when: Cond }[] };
   aptitude: Fx; // 스탯별 성장 적성, 비스탯은 증가량 배율
   traits: Fx;
   baseWeights: Fx;
@@ -249,6 +266,7 @@ export interface Result {
   d: Fx;
   p: number | null;
   skill?: string;
+  signed?: { salary: number; until: number }; // 이 선택으로 맺은 계약
 }
 
 export interface Report {
@@ -299,6 +317,7 @@ export interface Sheet {
   coach: string; // 감독 한마디
   comment: string; // 팬 댓글
   d: Fx;
+  scout: number; // 등급 점수 변화 (화면에는 방향만 보여 준다)
 }
 
 export interface MatchState {
@@ -341,6 +360,11 @@ export interface GameState {
   slots: number; // 경기 한 장면에 나오는 선택지 수
   cool: Fx; // 에이전시 행동 id → 다시 쓸 수 있는 턴
   agencyTurn: number; // 마지막으로 에이전시 행동을 한 턴
+  salary: number; // 연봉 (억 원). 프로가 되기 전에는 0
+  earned: number; // 통산 수입 (억 원)
+  until: number; // 계약이 끝나는 해
+  fa: boolean; // 계약이 끝나 시장에 나와 있다
+  pays: { year: number; team: string; salary: number }[]; // 계약 이력
   seen: string[];
   evCount: number; // 이번 턴에 본 이벤트 수
   revived: boolean; // 되돌리기를 이미 썼는가

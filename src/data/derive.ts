@@ -2,6 +2,7 @@
 // 선수 고유의 것(스테이지, 스토리, 관문, 엔딩, 연표)만 새로 쓴다.
 import type { Choice, Cond, EndingDef, GameEvent, Outcome, Pack } from '../engine/types';
 import { kangin } from './kangin';
+import { CLUB_IDS, clubs, goldenAlt } from './kangin/career';
 
 export type LegendSpec = Pick<
   Pack,
@@ -20,7 +21,16 @@ export type LegendSpec = Pick<
 const LOCAL = ['슛돌이', '발렌시아', '스페인', '메스타야', '파코', '다니', '인천'];
 const outs = (c: Choice): Outcome[] => (c.fail ? [c.ok, c.fail] : [c.ok]);
 
-export function legend(spec: LegendSpec): Pack {
+// 고유 이적 시장(ag_offers)에서도 세계 지도(공용 시장)로 넘어갈 수 있게 한다
+const HUB = { label: '세계 지도를 펼친다 — 다른 리그의 제안', ok: { text: '에이전트가 가방에서 지도를 꺼냈다. 핀이 여러 개 꽂혀 있다.', next: 'mk_hub' } };
+
+export function legend(spec0: LegendSpec): Pack {
+  const spec: LegendSpec = {
+    ...spec0,
+    stages: { ...clubs, ...spec0.stages },
+    abroad: [...spec0.abroad, ...CLUB_IDS],
+    story: spec0.story.map((e) => (e.id === 'ag_offers' ? { ...e, choices: [...e.choices.slice(0, -1), HUB, ...e.choices.slice(-1)] } : e)),
+  };
   const stages = new Set(Object.keys(spec.stages));
   // 스테이지 조건을 이 팩에 맞게 고친다. 축구하는 모든 곳을 뜻하던 긴 목록은 조건을 없애고, 나머지는 있는 곳만 남긴다.
   const fit = (c?: Cond): Cond | undefined | null => {
@@ -61,7 +71,7 @@ export function legend(spec: LegendSpec): Pack {
   for (let pass = 0; pass < 3; pass++) {
     const all = [...spec.story, ...pool];
     const ids = new Set(all.map((e) => e.id));
-    const made = new Set<string>(spec.gates.flatMap((g) => g.rules.flatMap((r) => r.flag ?? [])));
+    const made = new Set<string>(['fa', ...spec.gates.flatMap((g) => g.rules.flatMap((r) => r.flag ?? []))]); // fa는 엔진이 만든다
     for (const e of all) for (const c of e.choices) for (const o of outs(c)) o.flag?.forEach((f) => made.add(f));
     const can = (c?: Cond) => (c?.has ?? []).every((f) => made.has(f)) && (!c?.any || c.any.some((f) => made.has(f)));
     pool = pool.flatMap((e) => {
@@ -70,6 +80,11 @@ export function legend(spec: LegendSpec): Pack {
       return choices.length ? [{ ...e, choices }] : [];
     });
   }
+
+  // 끝까지 남은 이벤트와 관문이 만드는 플래그
+  const made = new Set<string>(['fa', ...spec.gates.flatMap((g) => g.rules.flatMap((r) => r.flag ?? []))]);
+  for (const e of [...spec.story, ...pool]) for (const c of e.choices) for (const o of outs(c)) o.flag?.forEach((f) => made.add(f));
+  const can = (c?: Cond) => (c?.has ?? []).every((f) => made.has(f)) && (!c?.any || c.any.some((f) => made.has(f)));
 
   const npcs = [...kangin.npcs.filter((n) => ['mom', 'dad', 'minsu', 'agent', 'reporter', 'shark', 'owner'].includes(n.id)), ...(spec.npcs ?? [])];
   const npcIds = new Set(npcs.map((n) => n.id));
@@ -84,7 +99,7 @@ export function legend(spec: LegendSpec): Pack {
     positions: { ...kangin.positions, ...spec.positions },
     actions: (text(kangin.actions) as Pack['actions']).flatMap((a) => {
       const when = fit(a.when);
-      return when === null || (a.event && !evIds.has(a.event)) ? [] : [{ ...a, when }];
+      return when === null || !can(when) || (a.event && !evIds.has(a.event)) ? [] : [{ ...a, when }];
     }),
     moves: text(kangin.moves),
     situations: kangin.situations.flatMap((x) => {
@@ -95,8 +110,10 @@ export function legend(spec: LegendSpec): Pack {
     endings,
     art: { ...kangin.art, ...spec.art },
     npcs,
+    // 황금 루트의 단서 가운데 이 팩에서 채울 수 없는 것(연애)은 다른 단서로 바꾼다
+    golden: { ...kangin.golden, clues: kangin.golden.clues.map((c) => (can(c.when) ? c : goldenAlt)) },
     drift: [
-      ...kangin.drift.filter((d) => !d.when?.stage && !d.when?.has),
+      ...kangin.drift.filter((d) => !d.when?.stage && (!d.when?.has || d.when.has.every((f) => f === 'pro'))),
       { when: { stage: spec.abroad }, fx: { lang: 3 } },
       { when: { stage: spec.abroad, max: { lang: 59.99 } }, fx: { homesick: 4 } },
     ],

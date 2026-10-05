@@ -3,6 +3,13 @@ import {
   advance,
   ageOf,
   agencyActions,
+  agencyDue,
+  careerOn,
+  clues,
+  fillText,
+  offerOf,
+  tierName,
+  won,
   availableActions,
   avgRating,
   butterflies,
@@ -137,6 +144,8 @@ function Hud({ pack, s }: { pack: Pack; s: GameState }) {
   const rels = ['coach', 'family', 'mates', 'fame'];
   if (s.v.nat > 0) rels.push('nat');
   if (s.v.lang > 0) rels.push('lang');
+  if ('lover' in s.flags || 'dating' in s.flags) rels.push('love');
+  const pro = careerOn(pack, s);
   return (
     <aside className="card hud">
       <div className="who">
@@ -149,6 +158,8 @@ function Hud({ pack, s }: { pack: Pack; s: GameState }) {
           <div className="team">{posName(pack, s)}</div>
           <div className="badges">
             <span className="badge ovr">OVR {Math.round(ovr(pack, s))}</span>
+            {pro && <span className="badge tier">⭐ {tierName(pack, s)}</span>}
+            {pro && <span className="badge pay">💰 연봉 {won(s.salary)}</span>}
             <span className="badge">세계선 이탈 {worldline(pack, s)}%</span>
             {s.v.joy < 35 && <span className="badge bad">😡 언해피</span>}
             {age >= 17 && <span className={'exempt' in s.flags ? 'badge ok' : 'badge'}>{'exempt' in s.flags ? '병역특례 ✔' : '병역 미해결'}</span>}
@@ -191,6 +202,7 @@ function Hud({ pack, s }: { pack: Pack; s: GameState }) {
 
 function Plan({ pack, s, update }: { pack: Pack; s: GameState; update: Update }) {
   const [sel, setSel] = useState<string[]>([]);
+  const due = agencyDue(pack, s);
   const list = availableActions(pack, s);
   const toggle = (id: string) =>
     setSel((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : cur.length < pack.slots ? [...cur, id] : cur));
@@ -236,6 +248,15 @@ function Plan({ pack, s, update }: { pack: Pack; s: GameState; update: Update })
       {s.v.stress > 75 && <p className="warn">⚠ 스트레스가 위험 수위다.</p>}
       {s.v.joy < 40 && <p className="warn">😡 축구가 재미없어 보인다. 놀게 해 주지 않으면 딴마음을 먹는다.</p>}
       {s.v.coach < 30 && <p className="warn">⚠ 감독의 신뢰가 낮아 선발에서 밀린다. 더 떨어지면 명단에서 빠진다.</p>}
+      {s.v.mates < 25 && <p className="warn">⚠ 라커룸 공기가 차갑다. 동료들이 패스를 아끼기 시작했다.</p>}
+      {'lover' in s.flags && s.v.love < 25 && <p className="warn">💔 연락이 뜸해졌다. 이대로면 그 사람이 떠난다.</p>}
+      {due && (
+        <div className="duebox">
+          <b>🕴️ 이적 시장이 열렸다 — 에이전시 미팅이 먼저다</b>
+          <p>프로 선수는 두 분기마다 한 번, 거취를 정하고 넘어간다. 남든, 떠나든, 몸값을 알아보든 하나를 고르자.</p>
+          <Agency pack={pack} s={s} update={update} forced />
+        </div>
+      )}
       <h3>
         이번 일정 <span>{pack.slots}개를 고르세요 · 🎓는 새 기술까지 남은 횟수</span>
       </h3>
@@ -247,8 +268,8 @@ function Plan({ pack, s, update }: { pack: Pack; s: GameState; update: Update })
         <p className="fine">
           예상 체력 {Math.round(s.v.stamina)} → <b className={after < 25 ? 'neg' : ''}>{Math.round(Math.max(0, Math.min(100, after)))}</b>
         </p>
-        <button className="btn hot" disabled={sel.length !== pack.slots} onClick={() => update(runPlan(pack, s, sel))}>
-          진행 ▶ ({sel.length}/{pack.slots})
+        <button className="btn hot" disabled={due || sel.length !== pack.slots} onClick={() => update(runPlan(pack, s, sel))}>
+          {due ? '에이전시 미팅부터 ▲' : `진행 ▶ (${sel.length}/${pack.slots})`}
         </button>
       </div>
     </div>
@@ -395,6 +416,12 @@ function SheetView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
         ))}
       </ul>
       <Deltas pack={pack} d={sh.d} />
+      {careerOn(pack, s) && (
+        <p className={sh.scout >= 0.3 ? 'scout up' : sh.scout <= -0.3 ? 'scout down' : 'scout'}>
+          🔭 스카우트 평가 {sh.scout >= 2 ? '▲▲ 크게 올랐다' : sh.scout >= 0.3 ? '▲ 올랐다' : sh.scout <= -2 ? '▼▼ 크게 떨어졌다' : sh.scout <= -0.3 ? '▼ 떨어졌다' : '― 그대로다'}
+          <small>현재 등급 {tierName(pack, s)} · 어려운 기술을 성공시킬수록 크게 오른다</small>
+        </p>
+      )}
       <button className="btn hot" onClick={() => update(advance(pack, s))}>
         다음 ▶
       </button>
@@ -426,7 +453,7 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
           </span>
         )}
       </div>
-      <p className="text">{ev.text}</p>
+      <p className="text">{fillText(pack, s, ev.text)}</p>
       {fly.length > 0 && <p className="fly">🦋 나비효과 — {fly.join(', ')}의 선택이 여기로 이어졌다.</p>}
       {!res ? (
         <div className="list">
@@ -434,14 +461,22 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
             if (!open[i])
               return (
                 <button key={i} className="choice locked" disabled>
-                  <b>🔒 다른 세계선의 선택지</b>
+                  <b>{c.lock ?? '🔒 다른 세계선의 선택지'}</b>
                 </button>
               );
             const p = chance(pack, s, c);
+            const deal = offerOf(pack, s, c);
             return (
               <button key={i} className="choice" onClick={() => update(choose(pack, s, i))}>
                 <b>
                   {c.label}
+                  {deal && (
+                    <small className="deal">
+                      💰 연봉 {won(deal.salary)}
+                      {deal.years > 0 && ` · ${deal.years}년 계약`}
+                      {p != null && ' (성공 시)'}
+                    </small>
+                  )}
                 </b>
                 {p != null && <span className={p >= 0.6 ? 'pct hi' : p >= 0.35 ? 'pct mid' : 'pct lo'}>성공률 {Math.round(p * 100)}%</span>}
               </button>
@@ -452,8 +487,13 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
         <div className={res.ok ? 'result ok' : 'result fail'}>
           <p className="picked">▶ {res.label}</p>
           {res.p != null && <p className="verdict">{res.ok ? '성공!' : '실패…'}</p>}
-          <p className="text">{res.text}</p>
+          <p className="text">{fillText(pack, s, res.text)}</p>
           <Deltas pack={pack} d={res.d} />
+          {res.signed && (
+            <p className="learned">
+              ✍️ 계약 — 연봉 <b>{won(res.signed.salary)}</b> · {res.signed.until}년까지
+            </p>
+          )}
           {skill && (
             <p className="learned">
               🎓 새 기술 습득! {skill.icon} <b>{skill.name}</b> — {skill.desc}
@@ -468,14 +508,48 @@ function SceneView({ pack, s, update }: { pack: Pack; s: GameState; update: Upda
   );
 }
 
-function Agency({ pack, s, update }: { pack: Pack; s: GameState; update: Update }) {
+function Agency({ pack, s, update, forced }: { pack: Pack; s: GameState; update: Update; forced?: boolean }) {
   const list = agencyActions(pack, s);
   const idle = s.phase === 'plan';
+  const pro = careerOn(pack, s);
+  const w = standing(pack, s);
+  if (forced)
+    return (
+      <div className="list">
+        {list
+          .filter((a) => !a.used && a.wait === 0)
+          .map(({ action: a }) => (
+            <button key={a.id} className="choice agency" onClick={() => update(startAgency(pack, s, a.id))}>
+              <b>
+                {a.icon} {a.name}
+                <small>{a.desc}</small>
+              </b>
+            </button>
+          ))}
+      </div>
+    );
   return (
     <div className="stack">
       <h3>
         에이전시 <span>일정 칸을 쓰지 않는다 · 한 턴에 하나 · 크게 얻거나 크게 잃는다</span>
       </h3>
+      {pro && (
+        <div className="grid3">
+          <div>
+            <b>{won(s.salary)}</b>
+            <small>연봉 · {s.until}년까지</small>
+          </div>
+          <div>
+            <b>{tierName(pack, s)}</b>
+            <small>선수 등급</small>
+          </div>
+          <div>
+            <b>{won(w.wage)}</b>
+            <small>시장이 보는 내 연봉</small>
+          </div>
+        </div>
+      )}
+      {pro && <p className="fine">해마다 첫 턴에 연봉 협상을 하고, 계약이 끝나는 해에는 FA 시장에 나간다. 두 분기마다 에이전시 미팅이 일정보다 먼저 온다.</p>}
       {!list.length && <p className="fine">아직은 운동장이 전부인 나이다. 만 11세부터 문이 열린다.</p>}
       {list.length > 0 && !idle && <p className="note">일정을 짜는 단계에서만 움직일 수 있다.</p>}
       {list.some((a) => a.used) && idle && <p className="note">이번 턴에는 이미 한 번 움직였다.</p>}
@@ -519,6 +593,30 @@ function WorldView({ pack, s }: { pack: Pack; s: GameState }) {
           <small>{w.value > 0 ? '추정 시장가치(원)' : '시장가치 없음 (15세부터)'}</small>
         </div>
       </div>
+      {w.wage > 0 && (
+        <>
+          <h3>
+            연봉 수준 <span>선수 등급 {tierName(pack, s)}</span>
+          </h3>
+          <div className="compare">
+            <label>
+              내 연봉 <b>{won(s.salary)}</b>
+              <Bar value={(100 * s.salary) / Math.max(s.salary, w.wage, w.leagueAvg)} tone="time" />
+            </label>
+            <label>
+              시장이 보는 내 연봉 <b>{won(w.wage)}</b>
+              <Bar value={(100 * w.wage) / Math.max(s.salary, w.wage, w.leagueAvg)} tone="stamina" />
+            </label>
+            <label>
+              이 리그 주전급 평균 <b>{won(w.leagueAvg)}</b>
+              <Bar value={(100 * w.leagueAvg) / Math.max(s.salary, w.wage, w.leagueAvg)} tone="rel" />
+            </label>
+          </div>
+          <p className="fine">
+            지금 연봉은 리그 주전급 평균의 <b>{(s.salary / w.leagueAvg).toFixed(1)}배</b>. 통산 수입 {won(s.earned)}.
+          </p>
+        </>
+      )}
       <div className="compare">
         <label>
           나 <b>{me}</b>
@@ -694,6 +792,18 @@ function Record({ pack, s, onSlot }: { pack: Pack; s: GameState; onSlot?: () => 
           📺 광고 보고 선택지 +1
         </button>
       )}
+      {s.pays.length > 0 && (
+        <>
+          <h3>
+            계약 이력 <span>통산 수입 {won(s.earned)}</span>
+          </h3>
+          <Pays s={s} />
+        </>
+      )}
+      <h3>
+        🗝 황금 루트 단서 <span>한 판에서 모두 채우면 숨은 엔딩이 열린다</span>
+      </h3>
+      <Clues pack={pack} s={s} />
       <h3>
         원작 연표 <span>✔ 이 세계선에서도 일어난 일</span>
       </h3>
@@ -703,6 +813,43 @@ function Record({ pack, s, onSlot }: { pack: Pack; s: GameState; onSlot?: () => 
       </h3>
       <Timeline pack={pack} s={s} />
     </div>
+  );
+}
+
+// 연봉이 어떻게 움직여 왔는가. 같은 해에 여러 번 사인했으면 마지막 것만 보여 준다
+function Pays({ s }: { s: GameState }) {
+  const rows = s.pays.filter((x, i) => s.pays[i + 1]?.year !== x.year);
+  const top = Math.max(...rows.map((x) => x.salary));
+  return (
+    <div className="pays">
+      {rows.slice(-10).map((x, i) => (
+        <label key={i}>
+          {x.year} · {x.team} <b>{won(x.salary)}</b>
+          <Bar value={(100 * x.salary) / top} tone="time" />
+        </label>
+      ))}
+    </div>
+  );
+}
+
+// 황금 루트 단서: 지금 채운 것만 내용이 보인다. known은 지난 판들에서 알아낸 단서
+function Clues({ pack, s, known = [] }: { pack: Pack; s?: GameState; known?: string[] }) {
+  const list = s ? clues(pack, s) : pack.golden.clues.map((c) => ({ ...c, done: false }));
+  const n = list.filter((c) => c.done).length;
+  return (
+    <ul className="clues">
+      {list.map((c, i) => {
+        const open = c.done || known.includes(c.id);
+        return (
+          <li key={c.id} className={c.done ? 'done' : open ? 'known' : 'todo'}>
+            <span>{c.done ? '🗝' : open ? '📜' : '🔒'}</span>
+            <b>{open ? `「${c.title}」` : `단서 ${i + 1}`}</b>
+            <small>{open ? c.text : '아직 모른다. 채운 채로 한 판을 마치면 내용이 기록된다.'}</small>
+          </li>
+        );
+      })}
+      {s && <li className="sum">지금 채운 단서 {n} / {list.length}</li>}
+    </ul>
   );
 }
 
@@ -758,6 +905,7 @@ export function Game(props: { pack: Pack; s: GameState; update: Update; onExit: 
           {TABS.map(([id, label]) => (
             <button key={id} className={tab === id ? 'on' : ''} onClick={() => setTab(id)}>
               {id === 'main' && s.phase !== 'plan' ? '진행 중' : label}
+              {id === 'agency' && agencyDue(pack, s) && ' ❗'}
             </button>
           ))}
         </nav>
@@ -827,6 +975,11 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
         <p className="fine">
           {dateOf(pack, lastTurn)} · {teamOf(pack, s)} · {posName(pack, s)} · 기술 {s.skills.length}개
         </p>
+        {s.pays.length > 0 && (
+          <p className="fine">
+            최고 등급 <b>{pack.career.tiers.find(([min]) => (s.v.tpeak ?? 0) >= min)?.[1]}</b> · 통산 수입 <b>{won(s.earned)}</b> · 최고 연봉 <b>{won(Math.max(...s.pays.map((x) => x.salary)))}</b> · 거친 팀 {new Set(s.pays.map((x) => x.team)).size}곳
+          </p>
+        )}
         <p className="reveal">
           숨겨져 있던 잠재력 <b>PA {s.pa}</b> — 이 아이가 닿을 수 있던 한계는 {Math.round(cap)}, 그중 <b>{Math.round((100 * w.ovr) / cap)}%</b>를 꽃피웠다.
         </p>
@@ -836,6 +989,12 @@ export function Ending(props: { pack: Pack; s: GameState; meta: Meta; onAgain: (
           원작 연표 <span>{hit} / {pack.realRoute.length} 일치</span>
         </h3>
         <RealRoute pack={pack} s={s} />
+      </div>
+      <div className="card">
+        <h3>
+          🗝 황금 루트 단서 <span>일곱 개를 한 판에서 모두 채우면 숨은 최고 엔딩</span>
+        </h3>
+        <Clues pack={pack} s={s} known={meta.clues[pack.id] ?? []} />
       </div>
       <div className="card">
         <h3>
@@ -932,6 +1091,12 @@ export function Codex(props: { pack: Pack; meta: Meta; onBack: () => void }) {
         )}
         {tab === 'ending' && (
           <div className="list">
+            <div className="row gold">
+              <b>
+                🗝 황금 루트 단서 {(meta.clues[pack.id] ?? []).length} / {pack.golden.clues.length}
+              </b>
+              <Clues pack={pack} known={meta.clues[pack.id] ?? []} />
+            </div>
             {pack.endings.map((e) => {
               const has = meta.endings.includes(e.id);
               return (

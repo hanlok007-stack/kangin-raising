@@ -176,6 +176,7 @@ export const agency: GameEvent[] = [
       { label: '파리 생제르맹 — 별들의 팀', need: { stage: ['val', 'mal', 'epl', 'kl', 'bra'], min: { ovr: 80, fame: 55 } }, ok: { text: '에펠탑이 보이는 훈련장. 옆자리 선수의 이름을 온 세상이 안다.', stage: 'psg', set: { coach: 42 }, fx: { fame: 15 }, flag: ['m_psg'], news: '[오피셜] 이강인, 파리 생제르맹 입단' } },
       { label: 'FC 코파카바나 — 브라질', need: { stage: ['val', 'mal', 'psg', 'epl', 'kl', 'es3', 'univ'], min: { ovr: 60 } }, ok: { text: '해변에서 맨발로 공을 차는 아이들이 나보다 드리블을 잘한다. 배울 게 많다.', stage: 'bra', set: { coach: 60 }, fx: { homesick: 20, fame: 5 }, skill: 'samba', news: '[해외축구] 이강인, 브라질행 깜짝 이적' } },
       { label: '인천 유나이티드 — K리그 복귀', need: { stage: ['val', 'mal', 'psg', 'epl', 'bra', 'es3'] }, ok: { text: '공항에 팬들이 마중 나왔다. "어서 와, 강인아."', stage: 'kl', set: { coach: 65, homesick: 0 }, fx: { family: 10 }, news: '[K리그] 이강인, 전격 국내 복귀' } },
+      { label: '세계 지도를 펼친다 — 다른 리그의 제안', ok: { text: '에이전트가 가방에서 지도를 꺼냈다. 핀이 여러 개 꽂혀 있다.', next: 'mk_hub' } },
       { label: '마음에 드는 제안이 없다', ok: { text: '제안서를 덮었다. 이번 시장은 그냥 보낸다.', fx: { stress: 3 } } },
     ],
   },
@@ -234,7 +235,7 @@ export const chain: GameEvent[] = [
     cat: '연애',
     npc: 'sori',
     auto: 0.7,
-    when: { age: [18, 99], min: { n_media: 3 }, not: ['met_sori'] },
+    when: { age: [18, 99], min: { n_media: 3 }, not: ['met_sori', 'lover'] },
     title: '아나운서의 명함',
     text: '인터뷰가 끝나고 한소리 아나운서가 마이크를 내려놓았다. "오늘 답변 좋았어요. 다음 방송 때문에… 연락처 좀 주실래요?"',
     choices: [
@@ -247,7 +248,7 @@ export const chain: GameEvent[] = [
     cat: '연애',
     npc: 'sori',
     auto: 0.6,
-    when: { has: ['met_sori'], not: ['dating', 'ex', 'partner'], min: { n_media: 5 } },
+    when: { has: ['met_sori'], not: ['dating', 'ex', 'partner', 'lover'], min: { n_media: 5 } },
     title: '저녁 약속',
     text: '방송국에 드나드는 일이 잦아졌다. 한소리 아나운서에게서 메시지가 왔다. "이번 주 금요일, 저녁 어때요?"',
     choices: [
@@ -283,7 +284,7 @@ export const chain: GameEvent[] = [
       {
         label: '둘 다 잡는다',
         check: { stats: { men: 1 }, rel: 4 },
-        ok: { text: '시간을 쪼갰다. 그녀는 가장 든든한 응원단이 됐다. 관중석에서 손을 흔드는 사람이 생겼다.', fx: { stress: -20, men: 2 }, flag: ['partner'], unflag: ['dating'] },
+        ok: { text: '시간을 쪼갰다. 그녀는 가장 든든한 응원단이 됐다. 관중석에서 손을 흔드는 사람이 생겼다.', fx: { stress: -20, men: 2 }, set: { love: 70 }, flag: ['partner', 'lover'], unflag: ['dating'] },
         fail: { text: '둘 다 놓쳤다. 훈련도, 약속도. 카페에서 조용히 헤어졌다.', fx: { stress: 25, men: 1 }, flag: ['ex'], unflag: ['dating'] },
       },
       { label: '축구를 택한다', ok: { text: '"지금은 축구밖에 못 할 것 같아요." 그녀가 웃었다. "알아요. 그래서 좋아했어요."', fx: { men: 3, stress: 10 }, flag: ['ex'], unflag: ['dating'] } },

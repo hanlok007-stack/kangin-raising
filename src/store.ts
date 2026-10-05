@@ -1,5 +1,5 @@
 // 브라우저 저장소: 진행 중 세이브 1개 + 회차를 넘어 유지되는 도감 + 편집자 화면에서 고친 데이터.
-import { milestones } from './engine/engine';
+import { clues, milestones } from './engine/engine';
 import type { GameState, Pack } from './engine/types';
 
 export interface Meta {
@@ -9,13 +9,14 @@ export interface Meta {
   best: number;
   legend: Record<string, string[]>; // 선수별로 모은 레전드 카드(연표 id)
   chapter: number; // 지금까지 열린 장 (1부터)
+  clues: Record<string, string[]>; // 선수별로 알아낸 황금 루트 단서
 }
 
 // 편집자 화면에서 바꿀 수 있는 팩의 부분
 export type Custom = Pick<Pack, 'cats' | 'events' | 'art'>;
 
-const SAVE = 'kangin.save.v4';
-const CKPT = 'kangin.ckpt.v4';
+const SAVE = 'kangin.save.v5'; // v5: 연봉·계약·선수 등급이 상태에 들어갔다
+const CKPT = 'kangin.ckpt.v5';
 const META = 'kangin.meta.v1';
 const CUSTOM = 'kangin.custom.v1';
 const PICK = 'kangin.pick.v1';
@@ -52,7 +53,7 @@ export const saveCustom = (c: Custom | null) => write(CUSTOM, c);
 export const loadPick = () => read<string>(PICK);
 export const savePick = (id: string) => write(PICK, id);
 
-export const loadMeta = (): Meta => ({ events: [], endings: [], runs: 0, best: 0, legend: {}, chapter: 1, ...read<Meta>(META) });
+export const loadMeta = (): Meta => ({ events: [], endings: [], runs: 0, best: 0, legend: {}, chapter: 1, clues: {}, ...read<Meta>(META) });
 
 // 관리자 설정의 "초기화": 이 게임이 저장한 것을 전부 지운다
 export function resetAll() {
@@ -76,6 +77,10 @@ export function mergeMeta(meta: Meta, p: Pack, s: GameState, wasEnded: boolean, 
   if (!events.length && !cards.length && !newEnding && !unlock) return meta;
   const next: Meta = { ...meta, events: [...meta.events, ...events], legend: { ...meta.legend, [p.id]: [...have, ...cards] }, chapter: Math.max(meta.chapter, reach) };
   if (newEnding) {
+    // 판을 마칠 때 채우고 있던 단서는 내용이 기록된다
+    const known = meta.clues[p.id] ?? [];
+    const found = clues(p, s).filter((c) => c.done && !known.includes(c.id)).map((c) => c.id);
+    if (found.length) next.clues = { ...meta.clues, [p.id]: [...known, ...found] };
     next.runs = meta.runs + 1;
     next.best = Math.max(meta.best, s.score);
     if (!meta.endings.includes(s.ending!)) next.endings = [...meta.endings, s.ending!];

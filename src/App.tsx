@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { chapterOf, chapters, LAST_CHAPTER, packs, reached } from './data';
-import { addSlot, newGame, revive, yearOf } from './engine/engine';
+import { addSlot, careerOn, newGame, revive, tierName, won, yearOf } from './engine/engine';
 import type { GameState, Pack } from './engine/types';
 import { validate } from './engine/validate';
 import { adFree, interstitialDue, reviveNeedsAd } from './platform/ads';
@@ -61,7 +61,8 @@ export default function App() {
     const nm = mergeMeta(meta, pack, next, !!s?.ending, reached(pack.id, yearOf(pack, next), final));
     if (nm.chapter > meta.chapter) setClear(nm.chapter - 1);
     setMeta(nm);
-    const newTurn = next.phase === 'plan' && !next.cur && (!s || s.turn !== next.turn || s.phase === 'ending');
+    // 턴의 첫 장면(해가 바뀌면 연봉 협상부터 열린다)이 되돌리기 지점이다
+    const newTurn = next.phase !== 'ending' && (next.phase === 'plan' || !!next.cur?.back) && !next.cur?.result && (!s || s.turn !== next.turn || s.phase === 'ending');
     if (newTurn) {
       saveCkpt(next);
       if (s && interstitialDue(chapterOf(pack.id, yearOf(pack, next)), next.turn)) setAd('inter');
@@ -210,7 +211,13 @@ export default function App() {
         </button>
       )}
       {screen}
-      {clear != null && <ChapterClear cleared={clear} onClose={() => setClear(null)} />}
+      {clear != null && (
+        <ChapterClear
+          cleared={clear}
+          note={s && careerOn(pack, s) ? `지금 ${pack.hero}의 선수 등급은 ${tierName(pack, s)}, 연봉은 ${won(s.salary)}, 통산 수입은 ${won(s.earned)}.` : undefined}
+          onClose={() => setClear(null)}
+        />
+      )}
       {ad && (
         <AdGate
           onDone={(ok) => {

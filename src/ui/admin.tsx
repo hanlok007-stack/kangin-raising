@@ -67,7 +67,7 @@ export function Admin(props: { chapter: number; onEditor: () => void; onUnlockAl
 }
 
 // 장을 넘겼을 때. 1장을 마친 뒤부터 광고 제거 패키지를 안내한다.
-export function ChapterClear(props: { cleared: number; onClose: () => void }) {
+export function ChapterClear(props: { cleared: number; note?: string; onClose: () => void }) {
   const [msg, setMsg] = useState('');
   const done = chapters.find((c) => c.n === props.cleared);
   const next = chapters.find((c) => c.n === props.cleared + 1);
@@ -89,6 +89,7 @@ export function ChapterClear(props: { cleared: number; onClose: () => void }) {
         ) : (
           <p className="text">모든 장을 마쳤습니다. 도감을 채우러 다시 돌아오세요.</p>
         )}
+        {props.note && <p className="fine">{props.note}</p>}
         {!owned() && (
           <div className="shop">
             <b>{NO_ADS.title}</b>

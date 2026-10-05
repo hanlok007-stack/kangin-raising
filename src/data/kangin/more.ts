@@ -1,4 +1,5 @@
 import type { GameEvent } from '../../engine/types';
+import { CLUB_IDS } from './career';
 
 // 변덕·언해피. 의욕(joy)이 떨어지면 아이가 딴마음을 먹는다. 허락하면 전혀 다른 인생의 엔딩.
 // at이 없는 이벤트는 다른 선수 팩에서도 쓴다.
@@ -338,7 +339,7 @@ export const late: GameEvent[] = [
       {
         label: '직접 찬다',
         check: { stats: { sho: 1, men: 1 }, dc: 84, trait: 'left' },
-        ok: { text: '공이 벽을 넘어 골문 구석에 꽂혔다. 원정 월드컵 첫 8강. 광화문이 뒤집어졌다.', fx: { fame: 25, nat: 15, joy: 12 }, goal: 1, flag: ['wc26', 'wc_hero'], news: '[월드컵] 이강인 프리킥 결승골! 사상 첫 원정 8강' },
+        ok: { text: '공이 벽을 넘어 골문 구석에 꽂혔다. 원정 월드컵 첫 8강. 광화문이 뒤집어졌다.', fx: { fame: 25, nat: 15, joy: 12 }, goal: 1, flag: ['wc26', 'wc_hero', 'clutch_hero'], news: '[월드컵] 이강인 프리킥 결승골! 사상 첫 원정 8강' },
         fail: { text: '공이 크로스바를 때렸다. 승부차기 끝에 졌다.', fx: { fame: 4, stress: 12, joy: -8 }, flag: ['wc26'] },
       },
       {
@@ -400,7 +401,7 @@ export const late: GameEvent[] = [
     id: 'l_kreturn',
     cat: '이적',
     at: [2032, 1],
-    when: { has: ['pro'], stage: ['val', 'mal', 'psg', 'epl', 'bra', 'ned', 'ger', 'cat', 'sau', 'es3'] },
+    when: { has: ['pro'], stage: ['val', 'mal', 'psg', 'epl', 'bra', 'ned', 'ger', 'cat', 'sau', 'es3', ...CLUB_IDS] },
     title: '돌아오라는 편지',
     text: '인천의 어린이 팬이 보낸 편지. "아저씨, 한국에서 뛰는 거 한 번만 보고 싶어요." 구단의 공식 제안서도 같이 왔다.',
     choices: [

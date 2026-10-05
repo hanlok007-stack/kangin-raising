@@ -1,4 +1,5 @@
 import type { ActionDef } from '../../engine/types';
+import { careerActions } from './career';
 
 export const actions: ActionDef[] = [
   { id: 'tech', kind: 'train', icon: '⚽', name: '개인 기술훈련', desc: '드리블↑ 패스↑', gain: { dri: 2.2, pas: 0.5 }, fx: { stamina: -14, stress: 4, joy: -2 }, physical: true },
@@ -17,6 +18,7 @@ export const actions: ActionDef[] = [
   { id: 'lang', kind: 'life', icon: '📖', name: '외국어 공부', desc: '외국어↑ 지능↑', gain: { iq: 0.4 }, fx: { lang: 10, stress: 3, stamina: -3, joy: -2 } },
   { id: 'media', kind: 'life', icon: '🎤', name: '방송·인터뷰', desc: '인지도↑ 감독↓', when: { min: { fame: 10 } }, fx: { fame: 7, stress: 4, stamina: -8, coach: -2, joy: 2 } },
   { id: 'rehab', kind: 'life', icon: '🩹', name: '재활·보강운동', desc: '부상 위험↓ 체력↑', when: { age: [8, 99] }, fx: { injury: -25, stamina: 12, stress: 2, joy: -1 } },
+  { id: 'date', kind: 'life', icon: '💑', name: '데이트', desc: '애인↑ 스트레스↓ 의욕↑', when: { has: ['lover'] }, fx: { love: 14, stress: -12, joy: 8, stamina: -6 } },
 
   // 에이전시: 일정 칸을 쓰지 않지만 한 분기에 하나만. 누르면 바로 판정 이벤트가 열린다. 하이리스크 하이리턴.
   { id: 'ag_talk', kind: 'agency', icon: '🚪', name: '감독 면담', desc: '신뢰를 크게 얻거나, 잃거나', when: { age: [11, 99] }, event: 'ag_talk', cool: 3 },
@@ -29,5 +31,6 @@ export const actions: ActionDef[] = [
   { id: 'ag_transfer', kind: 'agency', icon: '📑', name: '이적 요청', desc: '새 팀으로. 실패하면 미운털', when: { age: [18, 99] }, event: 'ag_transfer', cool: 5 },
   { id: 'ag_owner', kind: 'agency', icon: '🎩', name: '구단주 미팅', desc: '주전 보장 또는 괘씸죄', when: { age: [18, 99], has: ['pro'] }, event: 'ag_owner', cool: 5 },
   { id: 'ag_loan', kind: 'agency', icon: '🔁', name: '임대 요청', desc: '뛸 수 있는 팀으로 잠시', when: { age: [18, 99], stage: ['val', 'psg', 'epl'] }, event: 'ag_loan', cool: 6 },
+  ...careerActions,
   { id: 'ag_retire', kind: 'agency', icon: '🎙️', name: '은퇴 선언', desc: '여기서 커리어를 마친다', when: { age: [30, 99], has: ['pro'] }, event: 'ag_retire', cool: 4 },
 ];

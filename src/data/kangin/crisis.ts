@@ -9,14 +9,14 @@ export const crisis: GameEvent[] = [
     id: 'v_crush',
     cat: '연애',
     weight: 4,
-    when: { age: [16, 21], not: ['gf', 'crushed', 'dating', 'partner'] },
+    when: { age: [16, 21], not: ['gf', 'crushed', 'dating', 'partner', 'lover'] },
     title: '첫사랑',
     text: '경기장 관중석 맨 앞줄에 매번 같은 사람이 앉아 있다. 오늘은 눈이 마주쳤다. 공이 발에서 자꾸 떨어진다.',
     choices: [
       {
         label: '경기가 끝나고 말을 건다',
         check: { stats: { men: 1 }, rel: -2 },
-        ok: { text: '"저… 다음 경기도 오실 거죠?" 그 사람이 웃었다. 다음 경기에서 두 골을 넣었다.', fx: { joy: 18, men: 1, stress: -8 }, flag: ['gf'] },
+        ok: { text: '"저… 다음 경기도 오실 거죠?" 그 사람이 웃었다. 다음 경기에서 두 골을 넣었다.', fx: { joy: 18, men: 1, stress: -8 }, set: { love: 45 }, flag: ['gf', 'lover'] },
         fail: { text: '말을 더듬다가 사인만 해 주고 왔다. 이불을 찼다.', fx: { joy: -6, stress: 6 }, flag: ['crushed'] },
       },
       { label: '골로 대답한다', ok: { text: '그 사람이 보는 앞에서 넣은 골. 세리머니는 관중석 쪽이었다. 그걸로 충분했다.', fx: { men: 1.5, joy: 6 }, flag: ['crushed'] } },

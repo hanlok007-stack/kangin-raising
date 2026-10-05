@@ -17,7 +17,7 @@ export function validate(p: Pack): string[] {
   for (const id of dup(p.actions.map((a) => a.id))) out.push(`행동 id 중복: ${id}`);
   for (const id of dup(p.moves.map((m) => m.id))) out.push(`기술 id 중복: ${id}`);
 
-  const made = new Set<string>();
+  const made = new Set<string>(['fa']); // fa는 엔진이 만든다
   const used = new Set<string>();
   const anyOf: string[][] = [];
   const scan = (c?: Cond) => {
@@ -71,6 +71,9 @@ export function validate(p: Pack): string[] {
   p.npcs.forEach((n) => scan(n.when));
   p.drift.forEach((d) => scan(d.when));
   p.realRoute.forEach((m) => scan(m.when));
+  p.golden.clues.forEach((c) => scan(c.when));
+  for (const id of [p.career.salary, p.career.fa]) if (!events.has(id)) out.push(`커리어: 없는 이벤트 ${id}`);
+  if (!endings.has(p.golden.ending)) out.push(`황금 루트: 없는 엔딩 ${p.golden.ending}`);
   for (const f of used) if (!made.has(f)) out.push(`플래그 "${f}"를 조건에 쓰지만 만드는 곳이 없음`);
   for (const g of anyOf) if (!g.some((f) => made.has(f))) out.push(`플래그 ${g.join('/')} 중 만들어지는 것이 없음`);
   return out;
